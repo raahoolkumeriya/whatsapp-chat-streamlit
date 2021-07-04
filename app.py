@@ -125,6 +125,10 @@ def main():
             r'''(\d+/\d+/\d+, \d+:\d+\d+ [a-zA-Z]*) - (.*?): (.*)''', data)
         if regex_android:
             regex_string = regex_android
+        regex_samsung = re.findall(
+            r'''(\d+\-\d+\-\d+, \d+:\d+ [a-zA-Z].[a-zA-Z].*) - (.*?): (.*)''', data)
+        if regex_samsung:
+            regex_string = regex_samsung
         # Convert list to dataframe and name the columns
         raw_df = pd.DataFrame(
             regex_string, columns=['DateTime', 'Author', 'Message'])
@@ -135,6 +139,10 @@ def main():
         if regex_android:
             raw_df['DateTime'] = pd.to_datetime(
                 raw_df['DateTime'], format="%d/%m/%y, %H:%M %p")
+        if regex_samsung:
+            raw_df['DateTime'] = raw_df['DateTime'].str.replace(r'[p].[m].','PM')
+            raw_df['DateTime'] = raw_df['DateTime'].str.replace(r'[a].[m].','AM')
+            raw_df['DateTime'] = pd.to_datetime(raw_df['DateTime'],format="%Y-%m-%d, %I:%M %p")
         # Convert time to IST
         raw_df['DateTime'].dt.tz_localize('UTC').dt.tz_convert('Asia/Kolkata')
         # Splitting Date and Time
