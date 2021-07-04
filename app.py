@@ -164,9 +164,9 @@ def main():
                 lambda x: re.findall(URLPATTERN, x)).str.len())
         # Handle Image ommited
         rdf = rdf.assign(Media=rdf['Message'].apply(
-            lambda x: re.findall("image omitted", x)).str.len())
+            lambda x: re.findall("omitted", x)).str.len())
         # Handling wordCount
-        media_messages_df = rdf[rdf['Message'].str.contains("image omitted")]
+        media_messages_df = rdf[rdf['Message'].str.contains("omitted")]
         df = rdf.drop(media_messages_df.index)
         # Letter Count
         df['Letter_Count'] =\
@@ -186,7 +186,10 @@ def main():
             with col2:
                 st.markdown(
                     f"**Total words:** {np.sum(df.Word_Count)}")
-            text = " ".join(review for review in df.Message)
+            # handling Cloud messages 
+            cloud_df = df[df["Message"].str.contains\
+                ("<Media omitted>|This message was deleted|You deleted this message|Missed voice call|Missed video call")==False]
+            text = " ".join(review for review in cloud_df.Message)
             generate_word_cloud(text)
         with st.beta_expander("Individual Statistic ▶"):
             sorted_authors = df.groupby('Author')['Message'].count()\
@@ -211,7 +214,10 @@ def main():
                 st.markdown(f"""**Link Shared:**
                     {df[df['Urlcount'] == select_author[0] ].shape[0]}""")
             dummy_df = df[df['Author'] == select_author[0]]
-            text = " ".join(review for review in dummy_df.Message)
+            # handling Cloud messages 
+            cloud_df = dummy_df[dummy_df["Message"].str.contains\
+                ("<Media omitted>|This message was deleted|You deleted this message|Missed voice call|Missed video call")==False]
+            text = " ".join(review for review in cloud_df.Message)
             st.text("")
             fig = generate_word_cloud(text)
             st.write(fig)
