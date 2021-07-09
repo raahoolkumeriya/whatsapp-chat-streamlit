@@ -1,17 +1,17 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
 import re
 import os
 import emoji
+import numpy as np
+import pandas as pd
+import streamlit as st
+import plotly.express as px
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS
 import matplotlib.pyplot as plt
-import plotly.express as px
+
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 # Initial page config
-
 st.set_page_config(
     page_title="WhatsApp Chat Processor",
     page_icon="▶",
@@ -19,6 +19,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Footer Configuration of web page
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -34,6 +35,7 @@ hide_streamlit_style = """
             }
             </style>
             """
+# Disbling Streamlit default style configuration
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 padding = 0
 st.markdown(f""" <style>
@@ -66,11 +68,18 @@ st.sidebar.markdown(link, unsafe_allow_html=True)
 
 
 def extract_emojis(s):
-    """Extract emojis from message string"""
+    """
+    Extract emojis from message string
+    """
     return ''.join(c for c in s if c in emoji.UNICODE_EMOJI['en'])
 
 
 def add_multilingual_stopwords():
+    """
+    Handling Multilungual configuration here.
+    : Add pages into folder with different languages
+    : Currently Hindi and Marathi added
+    """
     multilingul_list = []
     for file in os.listdir('stopwords'):
         stopword = open('stopwords/' + file, "r")
@@ -89,6 +98,8 @@ def generate_word_cloud(text):
     wordcloud = WordCloud(
         stopwords=stopwords,
         font_path='Laila-Regular.ttf',
+        random_state=1,
+        collocations=False,
         background_color="white").generate(text)
     # Display the generated image:
     # the matplotlib way:
@@ -110,13 +121,15 @@ uploaded_file = st.file_uploader(
 
 def main():
     """
-    Function will process the txt data and process into 
-    Pandas Dataframe items
+    Function will process the txt data and process
+    into Pandas Dataframe items
     """
     if uploaded_file is not None:
         # Convert txt string to utf-8 Encoding
         data = uploaded_file.getvalue().decode("utf-8")
         # Compatible iOS and Android regex search
+        # Different Phone have diffent format of export
+        # Hence Iphone, Android and Samsung added in the case
         regex_iphone = re.findall(
             r'''(\[\d+/\d+/\d+, \d+:\d+:\d+ [A-Z]*\]) (.*?): (.*)''', data)
         if regex_iphone:
@@ -126,7 +139,8 @@ def main():
         if regex_android:
             regex_string = regex_android
         regex_samsung = re.findall(
-            r'''(\d+\-\d+\-\d+, \d+:\d+ [a-zA-Z].[a-zA-Z].*) - (.*?): (.*)''', data)
+         r'''(\d+\-\d+\-\d+, \d+:\d+ [a-zA-Z].[a-zA-Z].*) - (.*?): (.*)''',
+         data)
         if regex_samsung:
             regex_string = regex_samsung
         # Convert list to dataframe and name the columns
@@ -139,10 +153,16 @@ def main():
         if regex_android:
             raw_df['DateTime'] = pd.to_datetime(
                 raw_df['DateTime'], format="%d/%m/%y, %H:%M %p")
+        # --------------------------------------------------------
+        # Sumsung export has p.m and a.m in data time field
+        # ---------------------------------------------------------
         if regex_samsung:
-            raw_df['DateTime'] = raw_df['DateTime'].str.replace(r'[p].[m].','PM')
-            raw_df['DateTime'] = raw_df['DateTime'].str.replace(r'[a].[m].','AM')
-            raw_df['DateTime'] = pd.to_datetime(raw_df['DateTime'],format="%Y-%m-%d, %I:%M %p")
+            raw_df['DateTime'] = raw_df['DateTime'].str.replace(
+                r'[p].[m].', 'PM')
+            raw_df['DateTime'] = raw_df['DateTime'].str.replace(
+                    r'[a].[m].', 'AM')
+            raw_df['DateTime'] = pd.to_datetime(
+                raw_df['DateTime'], format='%Y-%m-%d, %I:%M %p')
         # Convert time to IST
         raw_df['DateTime'].dt.tz_localize('UTC').dt.tz_convert('Asia/Kolkata')
         # Splitting Date and Time
@@ -186,9 +206,10 @@ def main():
             with col2:
                 st.markdown(
                     f"**Total words:** {np.sum(df.Word_Count)}")
-            # handling Cloud messages 
-            cloud_df = df[df["Message"].str.contains\
-                ("<Media omitted>|This message was deleted|You deleted this message|Missed voice call|Missed video call")==False]
+            # handling Cloud messages
+            cloud_df = df[df["Message"].str.contains(
+                "<Media omitted>|This message was deleted|You deleted this message\
+                |Missed voice call|Missed video call") is False]
             text = " ".join(review for review in cloud_df.Message)
             generate_word_cloud(text)
         with st.beta_expander("Individual Statistic ▶"):
@@ -214,9 +235,10 @@ def main():
                 st.markdown(f"""**Link Shared:**
                     {df[df['Urlcount'] == select_author[0] ].shape[0]}""")
             dummy_df = df[df['Author'] == select_author[0]]
-            # handling Cloud messages 
-            cloud_df = dummy_df[dummy_df["Message"].str.contains\
-                ("<Media omitted>|This message was deleted|You deleted this message|Missed voice call|Missed video call")==False]
+            # handling Cloud messages
+            cloud_df = dummy_df[dummy_df["Message"].str.contains(
+                "<Media omitted>|This message was deleted|You deleted this message\
+                |Missed voice call|Missed video call") is False]
             text = " ".join(review for review in cloud_df.Message)
             st.text("")
             fig = generate_word_cloud(text)
