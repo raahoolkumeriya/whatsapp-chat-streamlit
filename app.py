@@ -35,6 +35,8 @@ hide_streamlit_style = """
             }
             </style>
             """
+
+        
 # Disbling Streamlit default style configuration
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 padding = 0
@@ -56,15 +58,17 @@ st.sidebar.title("WhatsApp Chat Analaysis is Data Science project:")
 st.sidebar.markdown('''This application is compatible with both iOS and\
     Android exported chat.''')
 st.sidebar.markdown('''** Application Feature: **
-- English/Marathi/Hindi Language vistualization
+- Multilungual text support
 - Individual Messenger Statistics
 - Emoji's distrubution
-- Message distribution w.r.t Date time
+- Message distribution w.r.t DateTime
 ''')
 
-link = '[GitHub](https://github.com/raahoolkumeriya/whatsapp-chat-streamlit)'
-st.sidebar.markdown("Source code")
-st.sidebar.markdown(link, unsafe_allow_html=True)
+st.sidebar.markdown("** About **")
+github = '[GitHub](https://github.com/raahoolkumeriya/whatsapp-chat-streamlit)'
+st.sidebar.markdown(github, unsafe_allow_html=True)
+twitter = '[Twitter](https://twitter.com/KumeriyaRahul)'
+st.sidebar.markdown(twitter, unsafe_allow_html=True)
 
 
 def extract_emojis(s):
@@ -195,9 +199,11 @@ def main():
             df['Message'].apply(lambda s: len(s.split(' ')))
         st.title(f"{group_name}")
         st.text("")
+        st.markdown("""---""")
         st.subheader("Raw Dataset ▶")
         with st.beta_container():
             st.dataframe(raw_df[["Author", "Message", "DateTime"]])
+
         with st.beta_expander("Words and Phrases frequently used ▶"):
             col1, col2 = st.beta_columns(2)
             with col1:
@@ -207,11 +213,12 @@ def main():
                 st.markdown(
                     f"**Total words:** {np.sum(df.Word_Count)}")
             # handling Cloud messages
-            cloud_df = df[df["Message"].str.contains(
-                "<Media omitted>|This message was deleted|You deleted this message\
-                |Missed voice call|Missed video call") is False]
+            cloud_df = df[df["Message"].str.contains("<Media omitted>|\
+                This message was deleted|You deleted this message|\
+                    Missed voice call|Missed video call") == False]
             text = " ".join(review for review in cloud_df.Message)
             generate_word_cloud(text)
+
         with st.beta_expander("Individual Statistic ▶"):
             sorted_authors = df.groupby('Author')['Message'].count()\
                 .sort_values(ascending=False).index
@@ -236,9 +243,9 @@ def main():
                     {df[df['Urlcount'] == select_author[0] ].shape[0]}""")
             dummy_df = df[df['Author'] == select_author[0]]
             # handling Cloud messages
-            cloud_df = dummy_df[dummy_df["Message"].str.contains(
-                "<Media omitted>|This message was deleted|You deleted this message\
-                |Missed voice call|Missed video call") is False]
+            cloud_df = dummy_df[dummy_df["Message"].str.contains("<Media omitted>|\
+                This message was deleted|You deleted this message|\
+                    Missed voice call|Missed video call") == False]
             text = " ".join(review for review in cloud_df.Message)
             st.text("")
             fig = generate_word_cloud(text)
