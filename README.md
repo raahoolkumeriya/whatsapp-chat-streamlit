@@ -1,6 +1,8 @@
-# whatsapp-chat-streamlit
+# Whatsapp chat Analysis Streamlit
 WhatsApp Chat Analaysis is Data Science project:
 This application is compatible with both iOS and Android exported chat.
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/raahoolkumeriya/whatsapp-chat-streamlit/main/app.py)
 
 #### Application Feature:
 
