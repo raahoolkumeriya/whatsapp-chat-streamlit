@@ -5,6 +5,7 @@ import logging
 import numpy as np
 import pandas as pd
 import plotly.express as px
+from textblob import TextBlob
 from typing import List, Dict
 from collections import Counter
 import matplotlib.pyplot as plt
@@ -68,6 +69,7 @@ class WhatsApp:
         """
         logging.info("WhatsApp/process_data()")
         raw_df = pd.DataFrame(messages, columns=['datetime', 'name', 'message'])
+        # SAMSUNG Export time format
         try:
             raw_df['datetime'] = raw_df['datetime'].str.replace(
                 r'[p].[m].', 'PM', regex=True)
@@ -77,6 +79,7 @@ class WhatsApp:
                 raw_df['datetime'], format="%Y-%m-%d, %I:%M %p")
         except Exception:
             pass
+        # IOS Export time format
         try:
             # Drop date enclosures from date column
             raw_df['datetime'] = raw_df['datetime'].map(
@@ -85,6 +88,13 @@ class WhatsApp:
                 raw_df['datetime'], format="%d/%m/%y, %I:%M:%S %p")
         except Exception:
             pass
+        # OppO Export time format
+        try:
+            raw_df['datetime'] = pd.to_datetime(
+                raw_df['datetime'], format="%d/%m/%Y, %I:%M %p")
+        except Exception:
+            pass
+        # Android Export time format
         try:
             raw_df['datetime'] = pd.to_datetime(
                 raw_df['datetime'], format="%d/%m/%y, %I:%M %p")
@@ -186,15 +196,16 @@ class WhatsApp:
         cloud_df = raw_df[raw_df["message"].str.contains(
             sep.join(self.ignore)) == False]
         modified_df = cloud_df.copy()
-        modified_df.message = cloud_df.loc[:,'message'].apply(lambda s: s.lower())\
-            .str.replace('\n|\t', '',regex=True)\
+        modified_df.message = cloud_df.loc[:,'message'].apply(
+            lambda s: s.lower())\
+            .str.replace('\n|\t', '', regex=True)\
             .str.replace(' {2,}', ' ', regex=True)\
             .str.strip().replace(r'http\S+', '', regex=True)\
             .replace(r'www\S+', '', regex=True)
         # Remove EMoji's
-        modified_df.astype(str).apply(
+        final_df = modified_df.astype(str).apply(
             lambda x: x.str.encode('ascii', 'ignore').str.decode('ascii'))
-        return modified_df
+        return final_df
 
     def plot_data(self, x_value, y_value, tick_label, x_label, y_label, title):
         """
@@ -221,17 +232,17 @@ class WhatsApp:
         ax.xaxis.grid(False)
         # Grab the color of the bars so we can make the
         # text the same color.
-        bar_color = bars[0].get_facecolor()
+        # bar_color = bars[0].get_facecolor()
         # Add text annotations to the top of the bars.
         # Note, you'll have to adjust this slightly (the 0.3)
         # with different data.
         for bar in bars:
             ax.text(
                 bar.get_x() + bar.get_width() / 2,
-                bar.get_height() + 0.5,
+                bar.get_height(),
                 round(bar.get_height(), 1),
                 horizontalalignment='center',
-                color=bar_color,
+                color='green',  # bar_color
                 # weight='bold'
             )
         ax.set_xlabel(x_label, labelpad=15, color='#333333')
@@ -359,7 +370,7 @@ class WhatsApp:
         """
         logging.info("WhatsApp/time_when_group_active()")
         # Time whenever the group was highly active
-        active_time = df.datetime.dt.time.value_counts().head(20)
+        active_time = df.datetime.dt.time.value_counts().head(10)
         self.plot_data(
             active_time.size, active_time.values, active_time.index,
             'Time',
@@ -393,4 +404,16 @@ class WhatsApp:
             'Day',
             'Number of Messages',
             'Analysis of Day when group was highly active'
+            )
+
+    def sentiment_analysis(self, cloud_df):
+        cloud_df['sentiment'] = cloud_df.message.apply(
+            lambda text: TextBlob(text).sentiment.polarity)
+        sentiment = cloud_df[['name', 'sentiment']].groupby('name').mean()
+        s_a = sentiment.sort_values('sentiment', ascending=False).head(10)
+        self.plot_data(
+            s_a.size, s_a.sentiment, s_a.index,
+            'Name of Group Member',
+            'Positive Sentiment in Group',
+            'Analysis of members having higher score in Positive Sentiment'
             )

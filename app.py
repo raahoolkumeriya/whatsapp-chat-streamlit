@@ -233,41 +233,35 @@ def main():
             text, "Word Cloud for Chat words")
 
         st.header("🔘 Most Active Member")
-        most_active_mem = w.most_active_member(df)
-        st.pyplot(most_active_mem)
+        st.pyplot(w.most_active_member(df))
 
         st.header("🔘  Most Active Day")
         w.day_analysis(df)
-        most_active_day = w.most_active_day(df)
-        st.pyplot(most_active_day)
+        st.pyplot(w.most_active_day(df))
 
         st.header("🔘 Who uses more words in sentences")
-        max_words = w.max_words_used(df)
-        st.pyplot(max_words)
+        st.pyplot(w.max_words_used(df))
 
         st.header("🔘 Top-10 Media Contributor ")
-        top_contributor = w.top_media_contributor(raw_df)
-        st.pyplot(top_contributor)
+        st.pyplot(w.top_media_contributor(raw_df))
 
         st.header("🔘 Who shares Links in group most? ")
-        links = w.who_shared_links(df)
-        st.pyplot(links)
+        st.pyplot(w.who_shared_links(df))
 
-        # st.header("Group highly Active time ")
-        # times = w.time_when_group_active(df)
-        # st.pyplot(times)
+        st.header("🔘 Who has Positive Sentiment? ")
+        st.pyplot(w.sentiment_analysis(cloud_df))
+
+        st.header("Group highly Active time ")
+        st.pyplot(w.time_when_group_active(df))
 
         st.header("🔘 Most Active Day ")
-        days = w.most_suitable_day(df)
-        st.pyplot(days)
+        st.pyplot(w.most_suitable_day(df))
 
         st.header("🔘 Most Active Hour")
-        hours = w.most_suitable_hour(df)
-        st.pyplot(hours)
+        st.pyplot(w.most_suitable_hour(df))
 
         st.header("🔘 Over the Time Analysis ")
-        over_time_analysis = w.time_series_plot(df)
-        st.write(over_time_analysis)
+        st.write(w.time_series_plot(df))
 
         st.header("🔘 Curious about Emoji's ?")
         st.write(
