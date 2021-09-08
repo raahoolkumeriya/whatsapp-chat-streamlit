@@ -6,7 +6,7 @@ from chat_eda import WhatsApp
 from numpy import sum as npsum
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
-import _banner
+
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 warnings.filterwarnings(
@@ -276,3 +276,8 @@ def main():
         st.plotly_chart(pie_display)
 
         st.write("🔘 Much more to Come ...")
+
+
+if __name__ == "__main__":
+    import _banner
+    main()
