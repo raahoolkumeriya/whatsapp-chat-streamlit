@@ -1,20 +1,21 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
 import re
 import os
-import emoji
-from collections import Counter
-from wordcloud import WordCloud, STOPWORDS
+import warnings
+import streamlit as st
+from chat_eda import WhatsApp
+from numpy import sum as npsum
 import matplotlib.pyplot as plt
-import plotly.express as px
+from wordcloud import WordCloud, STOPWORDS
+import _banner
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-# Initial page config
+warnings.filterwarnings(
+    "ignore", message="Glyph 128584 missing from current font.")
 
+# Initial page config
 st.set_page_config(
     page_title="WhatsApp Chat Processor",
-    page_icon="▶",
+    page_icon="",
     # layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -29,12 +30,13 @@ hide_streamlit_style = """
                 display: block;
                 position: relative;
                 #background-color: red;
-                padding: 10px;
-                top: 12px;
+                padding: 5px;
+                top: 5px;
             }
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+st.cache(allow_output_mutation=True)
 padding = 0
 st.markdown(f""" <style>
     .reportview-container .main .block-container{{
@@ -43,6 +45,7 @@ st.markdown(f""" <style>
         padding-left: {padding}rem;
         padding-bottom: {padding}rem;
     }} </style> """, unsafe_allow_html=True)
+
 
 st.title('WhatsApp Chat Processor')
 st.markdown("Messages in your chat box, **says something?**...Let's find out")
@@ -54,10 +57,12 @@ st.sidebar.title("WhatsApp Chat Analaysis is Data Science project:")
 st.sidebar.markdown('''This application is compatible with both iOS and\
     Android exported chat.''')
 st.sidebar.markdown('''** Application Feature: **
-- English/Marathi/Hindi Language vistualization
+- English/Marathi/Hindi support in wordcloud
 - Individual Messenger Statistics
+- Graphs
 - Emoji's distrubution
-- Message distribution w.r.t Date time
+- Time series analysis
+- Sentiment analysis
 ''')
 
 link = '[GitHub](https://github.com/raahoolkumeriya/whatsapp-chat-streamlit)'
@@ -65,42 +70,51 @@ st.sidebar.markdown("Source code")
 st.sidebar.markdown(link, unsafe_allow_html=True)
 
 
-def extract_emojis(s):
-    """Extract emojis from message string"""
-    return ''.join(c for c in s if c in emoji.UNICODE_EMOJI['en'])
-
-
-def add_multilingual_stopwords():
-    multilingul_list = []
-    for file in os.listdir('stopwords'):
-        stopword = open('stopwords/' + file, "r")
-        for word in stopword:
-            word = re.sub('[\n]', '', word)
-            multilingul_list.append(word)
-    return multilingul_list
-
-
-def generate_word_cloud(text):
+class WordCloudDisplay:
     """
-    Generate Word Cloud for Text
+    Word Cloud Display
     """
-    # wordcloud = WordCloud(
-    #   stopwords=stopwords, background_color="white").generate(text)
-    wordcloud = WordCloud(
-        stopwords=stopwords,
-        font_path='Laila-Regular.ttf',
-        background_color="white").generate(text)
-    # Display the generated image:
-    # the matplotlib way:
-    plt.figure(figsize=(15, 3))
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.axis("off")
-    st.pyplot()
+    def add_multilingual_stopwords(self):
+        """
+        Function add Hindi, Marathi for the moment as
+        Multilingula support for stopwords
+        """
+        multilingul_list = []
+        for file in os.listdir('stopwords'):
+            stopword = open('stopwords/' + file, "r")
+            for word in stopword:
+                word = re.sub('[\n]', '', word)
+                multilingul_list.append(word)
+        return set(STOPWORDS).union(set(multilingul_list))
+
+    def generate_word_cloud(self, text, title):
+        """
+        Generate Word Cloud for Text
+        """
+        # wordcloud = WordCloud(
+        #   stopwords=stopwords, background_color="white").generate(text)
+        wordcloud = WordCloud(
+            scale=3,
+            width=500,
+            height=330,
+            max_words=200,
+            colormap='tab20c',
+            stopwords=self.add_multilingual_stopwords(),
+            collocations=True,
+            contour_color='#5d0f24',
+            contour_width=3,
+            font_path='Laila-Regular.ttf',
+            background_color="white").generate_from_text(text)
+        # Display the generated image:
+        # the matplotlib way:
+        plt.figure(figsize=(10, 8))
+        plt.imshow(wordcloud, interpolation='bilinear')
+        plt.axis("off")
+        plt.title(title)
+        st.pyplot()
 
 
-# Preprocessing
-URLPATTERN = r'(https?://\S+)'
-stopwords = set(STOPWORDS).union(set(add_multilingual_stopwords()))
+gen_wordcloud = WordCloudDisplay()
 
 uploaded_file = st.file_uploader(
     "Choose a TXT file only",
@@ -108,153 +122,157 @@ uploaded_file = st.file_uploader(
     accept_multiple_files=False)
 
 
+def next_page():
+    st.session_state.page += 1
+
+
+def prev_page():
+    st.session_state.page -= 1
+
+
 def main():
     """
-    Function will process the txt data and process into 
+    Function will process the txt data and process into
     Pandas Dataframe items
     """
     if uploaded_file is not None:
         # Convert txt string to utf-8 Encoding
         data = uploaded_file.getvalue().decode("utf-8")
         # Compatible iOS and Android regex search
-        regex_iphone = re.findall(
-            r'''(\[\d+/\d+/\d+, \d+:\d+:\d+ [A-Z]*\]) (.*?): (.*)''', data)
-        if regex_iphone:
-            regex_string = regex_iphone
-        regex_android = re.findall(
-            r'''(\d+/\d+/\d+, \d+:\d+\d+ [a-zA-Z]*) - (.*?): (.*)''', data)
-        if regex_android:
-            regex_string = regex_android
-        # Convert list to dataframe and name the columns
-        raw_df = pd.DataFrame(
-            regex_string, columns=['DateTime', 'Author', 'Message'])
-        # Convert to dataframe date w.r.t to common DateTime format
-        if regex_iphone:
-            raw_df['DateTime'] = pd.to_datetime(
-                raw_df['DateTime'], format="[%d/%m/%y, %H:%M:%S %p]")
-        if regex_android:
-            raw_df['DateTime'] = pd.to_datetime(
-                raw_df['DateTime'], format="%d/%m/%y, %H:%M %p")
-        # Convert time to IST
-        raw_df['DateTime'].dt.tz_localize('UTC').dt.tz_convert('Asia/Kolkata')
-        # Splitting Date and Time
-        raw_df['Date'] = pd.to_datetime(raw_df['DateTime']).dt.date
-        raw_df['Time'] = pd.to_datetime(raw_df['DateTime']).dt.time
-        # Drop DateTime Column
-        # raw_df.drop('DateTime',axis='columns', inplace=True)
-        # Drop NAN Values
-        raw_df = raw_df.dropna()
-        raw_df = raw_df.reset_index(drop=True)
-        # Handling *Messages and calls are end-to-end encrypted*
-        group_name = raw_df.iloc[0:1]['Author'][0]
-        rdf = raw_df.iloc[1:, :]
-        # Handle EMojis
-        rdf = rdf.assign(Emojis=rdf["Message"].apply(extract_emojis))
-        # Handle Links
-        rdf = rdf.assign(
-            Urlcount=rdf["Message"].apply(
-                lambda x: re.findall(URLPATTERN, x)).str.len())
-        # Handle Image ommited
-        rdf = rdf.assign(Media=rdf['Message'].apply(
-            lambda x: re.findall("image omitted", x)).str.len())
-        # Handling wordCount
-        media_messages_df = rdf[rdf['Message'].str.contains("image omitted")]
-        df = rdf.drop(media_messages_df.index)
-        # Letter Count
-        df['Letter_Count'] =\
-            df['Message'].apply(lambda s: len(s))
-        df['Word_Count'] =\
-            df['Message'].apply(lambda s: len(s.split(' ')))
-        st.title(f"{group_name}")
+
+        w = WhatsApp()
+        message = w.apply_regex(data)
+        raw_df = w.process_data(message)
+        df = w.get_dataframe(raw_df)
+        stats = w.statistics(raw_df, df)
+
+        st.markdown(f'# {stats.get("group_name")}')
+
+        st.markdown("----")
+
+        # Pagination Code
+        if "page" not in st.session_state:
+            st.session_state.page = 0
+        col1, _, _, col2, _, col3 = st.columns(6)
+        if st.session_state.page < 4:
+            col3.button("Next", on_click=next_page)
+        else:
+            col3.write("")  # this makes the empty column show up on mobile
+        if st.session_state.page > 0:
+            col1.button("Previous", on_click=prev_page)
+        else:
+            col1.write("")  # this makes the empty column show up on mobile
+        col2.write(f"Page {1+st.session_state.page} of {5}")
+        start = 10 * st.session_state.page
+        end = start + 10
+        st.write("")
+
+        st.dataframe(raw_df[["name", "message", "datetime"]].iloc[start:end])
+
+        st.markdown("#")
+
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric(
+            "Total Messages", stats.get('total_messages'), delta="📦 📨")
+        col2.metric(
+            "Total Members", stats.get('total_members'), "💃🕺")
+        col3.metric(
+            "Total Media", stats.get('media_message'), delta="🎞️ 📷")
+        col4.metric(
+            "Link shared", int(stats.get('link_shared')), delta="🖇️ 🔗")
+        col1, col2 = st.columns(2)
+        col1.metric(
+            "Total Delted messages",
+            stats.get('total_deleted_messages'), "+/-1%")
+        col2.metric(
+            "Your Deleted Messages",
+            stats.get('your_deleted_message'), "+/-1%")
+
+        st.markdown("----")
+
+        cloud_df = w.cloud_data(raw_df)
+
+        # SECTION 3: Frequenctly use words
+        st.header("🔘 Frequently used words")
+        sorted_authors = w.sorted_authors(df)
+        st.write("Select Member to see its Statistics")
+        select_author = []
+
+        select_author.append(st.selectbox('', sorted_authors))
+        col1, col2 = st.columns([2, 2])
+        with col1:
+            st.markdown(f"**Total Messages:** {df.shape[0]}")
+            st.markdown(f"""**Messages:**
+                {df[df['name'] == select_author[0]].shape[0]}""")
+            number = df.groupby(
+                by=["name"], dropna=False).sum()['media'].get(
+                    select_author[0])
+            st.markdown(f"**Media Shared:** {number}")
+            user_df = df[df.name == select_author[0]]
+            average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
+            st.markdown(f"**Average words/Message:** {average}")
+
+        with col2:
+            st.markdown(f"**Highest Messanger:** {sorted_authors[0]}")
+            st.markdown(f"""**Emoji's Shared:**
+                {sum(df[df['name'] == select_author[0]]
+                .emojis.str.len())}""")
+            st.markdown(f"""**Link Shared:**
+                {df[df['urlcount'] == select_author[0] ].shape[0]}""")
+        dummy_df = cloud_df[cloud_df['name'] == select_author[0]]
+        text = " ".join(review for review in dummy_df.message)
         st.text("")
-        st.subheader("Raw Dataset ▶")
-        with st.beta_container():
-            st.dataframe(raw_df[["Author", "Message", "DateTime"]])
-        with st.beta_expander("Words and Phrases frequently used ▶"):
-            col1, col2 = st.beta_columns(2)
-            with col1:
-                st.markdown(
-                    f"**Total Messages:** {df.Message.shape[0]}")
-            with col2:
-                st.markdown(
-                    f"**Total words:** {np.sum(df.Word_Count)}")
-            text = " ".join(review for review in df.Message)
-            generate_word_cloud(text)
-        with st.beta_expander("Individual Statistic ▶"):
-            sorted_authors = df.groupby('Author')['Message'].count()\
-                .sort_values(ascending=False).index
-            st.markdown("### **Select Member:**")
-            select_author = []
 
-            select_author.append(st.selectbox('', sorted_authors))
-            col1, col2 = st.beta_columns(2)
-            with col1:
-                st.markdown(f"**Total Messages:** {df.shape[0]}")
-                st.markdown(f"""**Messages:**
-                    {df[df['Author'] == select_author[0]].shape[0]}""")
-                st.markdown(f'''**Media Shared:**
-                    {df[df['Media'] == select_author[0]].shape[0]}''')
+        gen_wordcloud.generate_word_cloud(
+            text, "Word Cloud for individual Words")
 
-            with col2:
-                st.markdown(f"**Highest Messanger:** {sorted_authors[0]}")
-                st.markdown(f'''**Emoji's Shared:**
-                    {sum(df[df['Author'] == select_author[0]]
-                    .Emojis.str.len())}''')
-                st.markdown(f"""**Link Shared:**
-                    {df[df['Urlcount'] == select_author[0] ].shape[0]}""")
-            dummy_df = df[df['Author'] == select_author[0]]
-            text = " ".join(review for review in dummy_df.Message)
-            st.text("")
-            fig = generate_word_cloud(text)
-            st.write(fig)
+        st.markdown("----")
+        st.header("🔘 Words and Phrases frequently used in Chat")
+        text = " ".join(review for review in cloud_df.message)
+        gen_wordcloud.generate_word_cloud(
+            text, "Word Cloud for Chat words")
 
-        # View Data uploaded
-        with st.beta_expander("Histogram Plot ▶"):
-            st.text("")
-            hour = st.slider("selected_hour", 0, 0, 23, 1)
-            hist_data = df[df['DateTime'].dt.hour == hour]
-            if st.checkbox('view_data'):
-                st.subheader(f"Raw Data at {hour}")
-                st.write(hist_data)
-            st.subheader(f"Data by Minute at {hour}")
-            st.bar_chart(
-                np.histogram(
-                 hist_data['DateTime'].dt.minute, bins=60, range=(0, 60))[0])
+        st.header("🔘 Most Active Member")
+        most_active_mem = w.most_active_member(df)
+        st.pyplot(most_active_mem)
 
-        st.text("")
-        with st.beta_expander("Emojis distribution accross group▶"):
-            total_emojis_list = list(set([a for b in df.Emojis for a in b]))
-            st.subheader(f" Total Emoj's Shared: {len(total_emojis_list)}")
+        st.header("🔘  Most Active Day")
+        w.day_analysis(df)
+        most_active_day = w.most_active_day(df)
+        st.pyplot(most_active_day)
 
-            total_emojis_list = list([a for b in df.Emojis for a in b])
-            emoji_dict = dict(Counter(total_emojis_list))
-            emoji_dict = sorted(
-                emoji_dict.items(), key=lambda x: x[1], reverse=True)
-            # for i in emoji_dict:
-            #  print(i)
-            emoji_df = pd.DataFrame(emoji_dict, columns=['emojis', 'count'])
-            fig = px.pie(emoji_df, values='count', names='emojis')
-            fig.update_traces(textposition='inside', textinfo='percent+label')
-            st.plotly_chart(fig)
+        st.header("🔘 Who uses more words in sentences")
+        max_words = w.max_words_used(df)
+        st.pyplot(max_words)
 
-        st.text("")
-        with st.beta_expander("Message Distribution w.r.t DateTime ▶"):
-            st.markdown("### **Select Member:**")
-            selector = []
-            selector.append(st.selectbox('', ['Date', "DateTime"]))
-            z = df[selector[0]].value_counts()
-            # converts to dictionary
-            z1 = z.to_dict()
-            df['Msg_count'] = df[selector[0]].map(z1)
-            # Timeseries plot
-            fig = px.line(x=df[selector[0]], y=df['Msg_count'])
-            fig.update_layout(
-                title='Analysis of number of messages using TimeSeries plot.',
-                xaxis_title='Month',
-                yaxis_title='No. of Messages')
-            fig.update_xaxes(nticks=20)
-            st.write(fig)
+        st.header("🔘 Top-10 Media Contributor ")
+        top_contributor = w.top_media_contributor(raw_df)
+        st.pyplot(top_contributor)
 
+        st.header("🔘 Who shares Links in group most? ")
+        links = w.who_shared_links(df)
+        st.pyplot(links)
 
-if __name__ == "__main__":
-    main()
+        # st.header("Group highly Active time ")
+        # times = w.time_when_group_active(df)
+        # st.pyplot(times)
+
+        st.header("🔘 Most Active Day ")
+        days = w.most_suitable_day(df)
+        st.pyplot(days)
+
+        st.header("🔘 Most Active Hour")
+        hours = w.most_suitable_hour(df)
+        st.pyplot(hours)
+
+        st.header("🔘 Over the Time Analysis ")
+        over_time_analysis = w.time_series_plot(df)
+        st.write(over_time_analysis)
+
+        st.header("🔘 Curious about Emoji's ?")
+        st.write(
+            "The most use Emoji's in converstion is show with larger sector")
+        pie_display = w.pie_display_emojis(df)
+        st.plotly_chart(pie_display)
+
+        st.write("🔘 Much more to Come ...")
