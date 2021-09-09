@@ -60,7 +60,6 @@ class WhatsApp:
         """
         Extract emojis from message string
         """
-        logging.info("WhatsApp/extract_emojis()")
         return ''.join(c for c in s if c in emoji.UNICODE_EMOJI['en'])
 
     def process_data(self, messages):
@@ -150,7 +149,7 @@ class WhatsApp:
         author_list = self.get_members(df)
         return {
             "media_message": len(
-                raw_df[raw_df['message'] == "<Media omitted>"]),
+                raw_df[raw_df.message.str.contains("omitted")]),
             "total_deleted_messages": len(
                 raw_df[raw_df['message'] == "This message was deleted"]),
             "your_deleted_message": len(
@@ -165,12 +164,12 @@ class WhatsApp:
         Exploratory Data Analysis on Dataframe
         """
         logging.info("WhatsApp/day_analysis()")
-        lst = df.name.unique()
-        for i in range(len(lst)):
-            # Filtering out messages of particular user
-            req_df = df[df["name"] == lst[i]]
-            # req_df will contain messages of only one particular user
-            print(f'{lst[i]} ->  {req_df.shape[0]}')
+        # lst = df.name.unique()
+        # for i in range(len(lst)):
+        #     # Filtering out messages of particular user
+        #     req_df = df[df["name"] == lst[i]]
+        #     # req_df will contain messages of only one particular user
+        #     # print(f'{lst[i]} ->  {req_df.shape[0]}')
         df.groupby('name')['message'].count()\
             .sort_values(ascending=False).index
         df['day'] = df.datetime.dt.weekday.map(self.weeks)
@@ -179,12 +178,13 @@ class WhatsApp:
             'datetime', 'day', 'name', 'message',
             'date', 'time', 'emojis', 'urlcount']]
         df['day'] = df['day'].astype('category')
-        lst = df.day.unique()
+        # lst = df.day.unique()
         # Day wise Message list
-        for i in range(len(lst)):
-            # Filtering out messages of particular user
-            # req_df will contain messages of only one particular user
-            print(f'{lst[i]} -> {df[df["day"] == lst[i]].shape[0]}')
+        # for i in range(len(lst)):
+        #     # Filtering out messages of particular user
+        #     # req_df will contain messages of only one particular user
+        #     # print(f'{lst[i]} -> {df[df["day"] == lst[i]].shape[0]}')
+        #     pass
         return df
 
     def cloud_data(self, raw_df):
@@ -335,16 +335,16 @@ class WhatsApp:
         Time analysis w.r.t to message in chat
         """
         logging.info("WhatsApp/time_series_plot()")
-        z = df['datetime'].value_counts()
+        z = df['date'].value_counts()
         z1 = z.to_dict()  # converts to dictionary
-        df['Msg_count'] = df['datetime'].map(z1)
+        df['msg_count'] = df['date'].map(z1)
         # Timeseries plot
-        fig = px.line(x=df['datetime'], y=df['Msg_count'])
+        fig = px.line(x=df['date'], y=df['msg_count'])
         fig.update_layout(
-            title='Analysis of number of messages using TimeSeries plot.',
-            xaxis_title='Month',
-            yaxis_title='No. of Messages')
-        fig.update_xaxes(nticks=30)
+            title='Analysis of number of messages using Time Series plot.',
+            xaxis_title='Time Stamp',
+            yaxis_title='Number of Messages')
+        fig.update_xaxes(nticks=60)
         return fig
 
     def pie_display_emojis(self, df):
@@ -417,3 +417,18 @@ class WhatsApp:
             'Positive Sentiment in Group',
             'Analysis of members having higher score in Positive Sentiment'
             )
+
+    def message_cluster(self, df):
+        new_df = pd.DataFrame(df[['message']].groupby(by=df['name']).count())
+        new_df['media_count'] = df[['media']].groupby(by=df['name']).sum()
+        new_df['emoji_count'] = df[['emojis']].groupby(by=df['name']).sum()
+        new_df['urlcount_count'] = df[['urlcount']].groupby(by=df['name']).sum()
+        new_df['letter_count'] = df[['letter_count']].groupby(by=df['name']).sum()
+        new_df['words_count'] = df[['word_count']].groupby(by=df['name']).sum()
+        new_df.reset_index(level=0, inplace=True)
+
+        fig = px.scatter(
+            new_df, x="message", y="words_count",
+            size="letter_count", color="name",
+            hover_name="emoji_count", log_x=True, size_max=60)
+        return fig
