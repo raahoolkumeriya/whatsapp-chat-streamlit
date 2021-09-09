@@ -67,7 +67,8 @@ class WhatsApp:
         Converting string messages into DataFrame
         """
         logging.info("WhatsApp/process_data()")
-        raw_df = pd.DataFrame(messages, columns=['datetime', 'name', 'message'])
+        raw_df = pd.DataFrame(
+            messages, columns=['datetime', 'name', 'message'])
         # SAMSUNG Export time format
         try:
             raw_df['datetime'] = raw_df['datetime'].str.replace(
@@ -196,7 +197,7 @@ class WhatsApp:
         cloud_df = raw_df[raw_df["message"].str.contains(
             sep.join(self.ignore)) == False]
         modified_df = cloud_df.copy()
-        modified_df.message = cloud_df.loc[:,'message'].apply(
+        modified_df.message = cloud_df.loc[:, 'message'].apply(
             lambda s: s.lower())\
             .str.replace('\n|\t', '', regex=True)\
             .str.replace(' {2,}', ' ', regex=True)\
@@ -394,7 +395,7 @@ class WhatsApp:
 
     def most_suitable_day(self, df):
         """
-        Most Messages Analsyis w.r.t to Day 
+        Most Messages Analsyis w.r.t to Day
         """
         logging.info("WhatsApp/most_suitable_day()")
         # Time whenever the group was highly active
@@ -422,8 +423,10 @@ class WhatsApp:
         new_df = pd.DataFrame(df[['message']].groupby(by=df['name']).count())
         new_df['media_count'] = df[['media']].groupby(by=df['name']).sum()
         new_df['emoji_count'] = df[['emojis']].groupby(by=df['name']).sum()
-        new_df['urlcount_count'] = df[['urlcount']].groupby(by=df['name']).sum()
-        new_df['letter_count'] = df[['letter_count']].groupby(by=df['name']).sum()
+        new_df['urlcount_count'] = df[['urlcount']].groupby(
+            by=df['name']).sum()
+        new_df['letter_count'] = df[['letter_count']].groupby(
+            by=df['name']).sum()
         new_df['words_count'] = df[['word_count']].groupby(by=df['name']).sum()
         new_df.reset_index(level=0, inplace=True)
 
