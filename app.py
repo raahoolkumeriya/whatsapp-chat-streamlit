@@ -1,5 +1,6 @@
 import re
 import os
+import _banner
 import warnings
 import streamlit as st
 from chat_eda import WhatsApp
@@ -12,9 +13,10 @@ st.set_option('deprecation.showPyplotGlobalUse', False)
 warnings.filterwarnings(
     "ignore", message="Glyph 128584 missing from current font.")
 
+TITLE = "WhatsApp Chat Processor"
 # Initial page config
 st.set_page_config(
-    page_title="WhatsApp Chat Processor",
+    page_title=TITLE,
     page_icon="",
     # layout="wide",
     initial_sidebar_state="expanded",
@@ -47,7 +49,7 @@ st.markdown(f""" <style>
     }} </style> """, unsafe_allow_html=True)
 
 
-st.title('WhatsApp Chat Processor')
+st.title(TITLE)
 st.markdown("Messages in your chat box, **says something?**...Let's find out")
 st.markdown("**♟ General Statistics ♟**")
 st.markdown('''* This app is meant as a playground to explore the whatsApp Chat.
@@ -59,10 +61,10 @@ st.sidebar.markdown('''This application is compatible with both iOS and\
 st.sidebar.markdown('''** Application Feature: **
 - English/Marathi/Hindi support in wordcloud
 - Individual Messenger Statistics
-- Graphs
+- Activity Cluster
 - Emoji's distrubution
 - Time series analysis
-- Sentiment analysis
+- Sentiment Score of Member
 ''')
 
 link = '[GitHub](https://github.com/raahoolkumeriya/whatsapp-chat-streamlit)'
@@ -180,98 +182,138 @@ def main():
             "Total Media", stats.get('media_message'), delta="🎞️ 📷")
         col4.metric(
             "Link shared", int(stats.get('link_shared')), delta="🖇️ 🔗")
-        col1, col2 = st.columns(2)
-        col1.metric(
-            "Total Delted messages",
-            stats.get('total_deleted_messages'), "+/-1%")
-        col2.metric(
-            "Your Deleted Messages",
-            stats.get('your_deleted_message'), "+/-1%")
-
-        st.markdown("----")
-
+        st.text("")
+        # col1, col2 = st.columns(2)
+        # col1.metric(
+        #     "Total Delted messages",
+        #     stats.get('total_deleted_messages'), "+/-1%")
+        # col2.metric(
+        #     "Your Deleted Messages",
+        #     stats.get('your_deleted_message'), "+/-1%")
+        st.text("")
         cloud_df = w.cloud_data(raw_df)
 
         # SECTION 3: Frequenctly use words
         st.header("🔘 Frequently used words")
-        sorted_authors = w.sorted_authors(df)
+        st.markdown("----")
+        sorted_authors = w.sorted_authors(cloud_df)
         st.write("Select Member to see its Statistics")
         select_author = []
 
         select_author.append(st.selectbox('', sorted_authors))
+        dummy_df = cloud_df[cloud_df['name'] == select_author[0]]
+        text = " ".join(review for review in dummy_df.message)
+
         col1, col2 = st.columns([2, 2])
         with col1:
             st.markdown(f"**Total Messages:** {df.shape[0]}")
             st.markdown(f"""**Messages:**
-                {df[df['name'] == select_author[0]].shape[0]}""")
-            number = df.groupby(
-                by=["name"], dropna=False).sum()['media'].get(
-                    select_author[0])
-            st.markdown(f"**Media Shared:** {number}")
-            user_df = df[df.name == select_author[0]]
-            average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
-            st.markdown(f"**Average words/Message:** {average}")
+                {dummy_df[dummy_df['name'] == select_author[0]].shape[0]}""")
+            # number = df.groupby(
+            #     by=["name"], dropna=False).sum()['media'].get(
+            #         select_author[0])
+            # st.markdown(f"**Media Shared:** {number}")
 
         with col2:
             st.markdown(f"**Highest Messanger:** {sorted_authors[0]}")
-            st.markdown(f"""**Emoji's Shared:**
-                {sum(df[df['name'] == select_author[0]]
-                .emojis.str.len())}""")
-            st.markdown(f"""**Link Shared:**
-                {df[df['urlcount'] == select_author[0] ].shape[0]}""")
-        dummy_df = cloud_df[cloud_df['name'] == select_author[0]]
-        text = " ".join(review for review in dummy_df.message)
-        st.text("")
+            user_df = df[df.name.str.contains(select_author[0][-5:])]
+            average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
+            st.markdown(f"**Average words/Message:** {average}")
 
-        gen_wordcloud.generate_word_cloud(
-            text, "Word Cloud for individual Words")
+            st.markdown(f"""**Emoji's Shared:**
+                {sum(df[df.name.str.contains(select_author[0][-5:])]
+                .emojis.str.len())}""")
+            # st.markdown(f"""**Link Shared:**
+            #     {df[df['urlcount'] == select_author[0] ].shape[0]}""")
+
+        if len(text) != 0:
+            gen_wordcloud.generate_word_cloud(
+                text, "Word Cloud for individual Words")
+        else:
+            gen_wordcloud.generate_word_cloud(
+                "NOWORD", "Word Cloud for individual Words")
 
         st.markdown("----")
         st.header("🔘 Words and Phrases frequently used in Chat")
+        st.info("Frquently used words or phrases by all members in group chat.\
+            Most dicussion occurs around below words or used frequently.")
         text = " ".join(review for review in cloud_df.message)
         gen_wordcloud.generate_word_cloud(
             text, "Word Cloud for Chat words")
 
+        st.markdown("----")
         st.header("🔘 Most Active Member")
+        st.info("Member comparision based on the number of messages\
+            he/she posted in group chat")
         st.pyplot(w.most_active_member(df))
 
+        st.markdown("----")
         st.header("🔘  Most Active Day")
+        st.info("Member comparision based on the number of messages\
+            he/she posted in group chat w.r.t Day")
         w.day_analysis(df)
         st.pyplot(w.most_active_day(df))
 
+        st.markdown("----")
         st.header("🔘 Who uses more words in sentences")
+        st.info("Member uses more number of sentences during the conversation")
         st.pyplot(w.max_words_used(df))
 
+        st.markdown("----")
         st.header("🔘 Top-10 Media Contributor ")
+        st.info("Comparision of members who contributes more number of Images,\
+            Video or Documents")
         st.pyplot(w.top_media_contributor(raw_df))
 
+        st.markdown("----")
         st.header("🔘 Who shares Links in group most? ")
+        st.info("Members who shares internet links of information with others")
         st.pyplot(w.who_shared_links(df))
 
+        st.markdown("----")
         st.header("🔘 Who has Positive Sentiment? ")
+        st.info("Member sentiment analysis score base on the words used in\
+            messages. Sentiment Score above 0.5 to 1 is consider as Positive.\
+            Pure English words and Phrases is ideal for calcalation")
         st.pyplot(w.sentiment_analysis(cloud_df))
 
-        st.header("Group highly Active time ")
-        st.pyplot(w.time_when_group_active(df))
+        # st.markdown("----")
+        # st.header("🔘 Group highly Active time ")
+        # st.pyplot(w.time_when_group_active(df))
 
+        st.markdown("----")
         st.header("🔘 Most Active Day ")
+        st.info("Member who active for suitable Day")
         st.pyplot(w.most_suitable_day(df))
 
+        st.markdown("----")
         st.header("🔘 Most Active Hour")
+        st.info("Member who active during suitable hours")
         st.pyplot(w.most_suitable_hour(df))
 
+        st.markdown("----")
+        st.header("🔘 Member activity Cluster")
+        st.info("Cluster hover about the total messages, Emoji's, Links, Words\
+            and Letter by individual member")
+        st.write(w.message_cluster(df))
+
+        st.markdown("----")
         st.header("🔘 Over the Time Analysis ")
+        st.info("Group activity over the time w.r.t to number of messages")
         st.write(w.time_series_plot(df))
 
+        st.markdown("----")
         st.header("🔘 Curious about Emoji's ?")
-        st.write(
-            "The most use Emoji's in converstion is show with larger sector")
+        st.info("The most use Emoji's in converstion is show with\
+            larger sector")
         pie_display = w.pie_display_emojis(df)
         st.plotly_chart(pie_display)
 
-        st.write("🔘 Much more to Come ...")
+        st.header("🔘 Take out some time to plant Trees 🌲🌳🌴🌵")
+        st.success("🌳 I already did, now it's your turn 🌿🌾☘️.\
+            Let's refresh Earth with Green")
 
 
 if __name__ == "__main__":
-    import _banner
+    print(_banner.display_banner)
     main()
