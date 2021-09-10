@@ -5,8 +5,8 @@ class ComponentsTest(BaseCase):
     def test_basic(self):
 
         # open the app and take a screenshot
-        self.open("http://localhost:8501")
-        self.check_window(name="", baseline=True)
+        self.open("https://share.streamlit.io/raahoolkumeriya/whatsapp-chat-streamlit/main/app.py")
+        self.check_window(name="WhatsApp Chat Processor", baseline=True)
         # automated visual regression testing
         # tests page has identical structure to baseline
         # https://github.com/seleniumbase/SeleniumBase/tree/master/examples/visual_testing
