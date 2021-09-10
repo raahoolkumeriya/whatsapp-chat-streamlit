@@ -3,4 +3,6 @@
 # Font family for all text in the app, except code blocks
 # Accepted values (serif | sans serif | monospace) 
 # Default: "sans serif"
+base="light"
 font = "sans serif"
+primaryColor="#48ea08"
