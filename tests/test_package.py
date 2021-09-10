@@ -1,6 +1,4 @@
 from seleniumbase import BaseCase
-# import cv2
-import time
 
 
 class ComponentsTest(BaseCase):
@@ -8,11 +6,7 @@ class ComponentsTest(BaseCase):
 
         # open the app and take a screenshot
         self.open("http://localhost:8501")
-
-        time.sleep(10)  # give leaflet time to load from web
-        self.save_screenshot("current-screenshot.png")
-        self.check_window(name="helloworld", baseline=True)
-        self.assert_title("WhatsApp Chat Processor")
+        self.check_window(name="", baseline=True)
         # automated visual regression testing
         # tests page has identical structure to baseline
         # https://github.com/seleniumbase/SeleniumBase/tree/master/examples/visual_testing
