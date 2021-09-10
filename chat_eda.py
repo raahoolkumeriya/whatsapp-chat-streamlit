@@ -7,8 +7,11 @@ import pandas as pd
 import plotly.express as px
 from textblob import TextBlob
 from typing import List, Dict
+from typing import TypeVar, Any
 from collections import Counter
 import matplotlib.pyplot as plt
+
+DataFrameStr = TypeVar("pandas.core.frame.DataFrame(str)")
 
 
 class WhatsApp:
@@ -38,7 +41,7 @@ class WhatsApp:
             'Missed video call', 'Missed group video call',
             'Missed voice call', '<Media omitted>',
             'This message was deleted', 'image omitted',
-            'You deleted this message']
+            'video omitted', 'You deleted this message']
 
     def apply_regex(self, data: str) -> List:
         """
@@ -62,7 +65,7 @@ class WhatsApp:
         """
         return ''.join(c for c in s if c in emoji.UNICODE_EMOJI['en'])
 
-    def process_data(self, messages):
+    def process_data(self, messages: str) -> DataFrameStr:
         """
         Converting string messages into DataFrame
         """
@@ -104,7 +107,7 @@ class WhatsApp:
         raw_df['time'] = pd.to_datetime(raw_df['datetime']).dt.time
         return raw_df
 
-    def get_dataframe(self, raw_df):
+    def get_dataframe(self, raw_df: DataFrameStr) -> DataFrameStr:
         """
         Formation of Clean DataFrame
         """
@@ -125,7 +128,7 @@ class WhatsApp:
         messages_df["message_count"] = 1
         return messages_df
 
-    def get_members(self, df):
+    def get_members(self, df: DataFrameStr) -> DataFrameStr:
         """
         Return unique member list
         """
@@ -133,7 +136,7 @@ class WhatsApp:
         author_list = [author for author in df["name"].unique()]
         return author_list
 
-    def sorted_authors(self, df):
+    def sorted_authors(self, df: DataFrameStr) -> DataFrameStr:
         """
         Return sorted member list base on number of messages
         """
@@ -142,7 +145,7 @@ class WhatsApp:
             .sort_values(ascending=False).index
         return sorted_authors
 
-    def statistics(self, raw_df, df) -> Dict:
+    def statistics(self, raw_df: DataFrameStr, df: DataFrameStr) -> Dict:
         """
         Statistics for summuary results
         """
@@ -160,7 +163,7 @@ class WhatsApp:
             'total_members': len(author_list),
             'link_shared': df['urlcount'].sum()}
 
-    def day_analysis(self, df):
+    def day_analysis(self, df: DataFrameStr) -> DataFrameStr:
         """
         Exploratory Data Analysis on Dataframe
         """
@@ -188,7 +191,7 @@ class WhatsApp:
         #     pass
         return df
 
-    def cloud_data(self, raw_df):
+    def cloud_data(self, raw_df: DataFrameStr) -> DataFrameStr:
         """
         Word Cloud DataFrame Formation
         """
@@ -208,7 +211,10 @@ class WhatsApp:
             lambda x: x.str.encode('ascii', 'ignore').str.decode('ascii'))
         return final_df
 
-    def plot_data(self, x_value, y_value, tick_label, x_label, y_label, title):
+    def plot_data(
+            self, x_value: int, y_value: List,
+            tick_label: List, x_label: str, y_label: str,
+            title: str) -> Any:
         """
         Graph Plot function
         """
@@ -251,7 +257,7 @@ class WhatsApp:
         ax.set_title(title, pad=15, color='#333333')  # weight='bold')
         return fig
 
-    def max_words_used(self, df):
+    def max_words_used(self, df: DataFrameStr) -> Any:
         """
         Maximum words used in sentence in group chat
         """
@@ -270,7 +276,7 @@ class WhatsApp:
             'Analysis of members who has used more words in his/her messages',
             )
 
-    def most_active_member(self, df):
+    def most_active_member(self, df: DataFrameStr) -> Any:
         """
         Most active memeber as per number of messages in group
         """
@@ -286,7 +292,7 @@ class WhatsApp:
             'Mostly Active member in Group (based on messages)'
             )
 
-    def most_active_day(self, df):
+    def most_active_day(self, df: DataFrameStr) -> Any:
         """
         Most active day in Group as per messages numbers
         """
@@ -300,7 +306,7 @@ class WhatsApp:
             'Most active day of Week in the Group'
             )
 
-    def top_media_contributor(self, df):
+    def top_media_contributor(self, df: DataFrameStr) -> Any:
         """
         Top 10 members who shared media's in group
         """
@@ -316,7 +322,7 @@ class WhatsApp:
             'Analysis of Top-10 Media shared in Group'
             )
 
-    def who_shared_links(self, df):
+    def who_shared_links(self, df: DataFrameStr) -> Any:
         """
         Top 10 members Who shared maximum links in Group
         """
@@ -331,7 +337,7 @@ class WhatsApp:
             'Analysis of members who has shared max no. of links in Group'
             )
 
-    def time_series_plot(self, df):
+    def time_series_plot(self, df: DataFrameStr) -> Any:
         """
         Time analysis w.r.t to message in chat
         """
@@ -348,7 +354,7 @@ class WhatsApp:
         fig.update_xaxes(nticks=60)
         return fig
 
-    def pie_display_emojis(self, df):
+    def pie_display_emojis(self, df: DataFrameStr) -> Any:
         """
         Pie chart formation for Emoji's Distrubution
         """
@@ -365,7 +371,7 @@ class WhatsApp:
         fig.update_traces(textposition='inside', textinfo='percent+label')
         return fig
 
-    def time_when_group_active(self, df):
+    def time_when_group_active(self, df: DataFrameStr) -> Any:
         """
         Most Messages Analsyis w.r.t to Time
         """
@@ -379,7 +385,7 @@ class WhatsApp:
             'Analysis of time when group was highly active'
             )
 
-    def most_suitable_hour(self, df):
+    def most_suitable_hour(self, df: DataFrameStr) -> Any:
         """
         Most Messages Analsyis w.r.t to Hour
         """
@@ -393,7 +399,7 @@ class WhatsApp:
             'Analysis of hour when group was highly active'
             )
 
-    def most_suitable_day(self, df):
+    def most_suitable_day(self, df: DataFrameStr) -> Any:
         """
         Most Messages Analsyis w.r.t to Day
         """
@@ -407,7 +413,7 @@ class WhatsApp:
             'Analysis of Day when group was highly active'
             )
 
-    def sentiment_analysis(self, cloud_df):
+    def sentiment_analysis(self, cloud_df: DataFrameStr) -> Any:
         cloud_df['sentiment'] = cloud_df.message.apply(
             lambda text: TextBlob(text).sentiment.polarity)
         sentiment = cloud_df[['name', 'sentiment']].groupby('name').mean()
@@ -419,7 +425,7 @@ class WhatsApp:
             'Analysis of members having higher score in Positive Sentiment'
             )
 
-    def message_cluster(self, df):
+    def message_cluster(self, df: DataFrameStr) -> Any:
         new_df = pd.DataFrame(df[['message']].groupby(by=df['name']).count())
         new_df['media_count'] = df[['media']].groupby(by=df['name']).sum()
         new_df['emoji_count'] = df[['emojis']].groupby(by=df['name']).sum()

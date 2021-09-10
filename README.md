@@ -12,12 +12,12 @@ This application is compatible with both iOS and Android exported chat.
 
 
 #### Application Feature:
-
-- English/Marathi/Hindi support in wordcloud
+- Multilingual (Top-50 Languages) support in wordcloud
 - Individual Messenger Statistics
-- Graphs
+- Activity Cluster
 - Emoji's distrubution
 - Time series analysis
-- Sentiment analysis [`INPROGRESS`]
+- Sentiment Score of Member
+
 
 #### Contribute to Code

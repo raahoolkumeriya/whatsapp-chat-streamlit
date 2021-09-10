@@ -4,9 +4,11 @@ import _banner
 import warnings
 import streamlit as st
 from chat_eda import WhatsApp
+from typing import Dict, Any
 from numpy import sum as npsum
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
+
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
@@ -27,13 +29,13 @@ hide_streamlit_style = """
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             footer:after {
-                content:'copyrights © 2021 rahul.kumeriya@outlook.com';
+                content:'copyrights © 2021 rahul.kumeriya@outlook.com [ DONT FORGET TO PLANT TREES ]' ;
                 visibility: visible;
                 display: block;
-                position: relative;
+                position: fixed;
                 #background-color: red;
                 padding: 5px;
-                top: 5px;
+                top: 0;
             }
             </style>
             """
@@ -50,16 +52,16 @@ st.markdown(f""" <style>
 
 
 st.title(TITLE)
-st.markdown("Messages in your chat box, **says something?**...Let's find out")
-st.markdown("**♟ General Statistics ♟**")
-st.markdown('''* This app is meant as a playground to explore the whatsApp Chat.
-    Try it out by **Uploading without-Media whatsapp chat export** here.''')
+st.header("Messages in your chat group, `says something?`...Let's find out")
+st.subheader("**♟ General Statistics ♟**")
+st.write('''* This app is meant as a playground to explore the whatsApp Chat.
+    Try it out by `Uploading WITHOUT MEDIA whatsapp chat export` here.''')
 
-st.sidebar.title("WhatsApp Chat Analaysis is Data Science project:")
-st.sidebar.markdown('''This application is compatible with both iOS and\
-    Android exported chat.''')
+st.sidebar.title("WhatsApp Chat Processor is a Data Science project for Fun")
+st.sidebar.markdown('''This application is compatible with both `iOS` and\
+    `Android` device exported chat.''')
 st.sidebar.markdown('''** Application Feature: **
-- English/Marathi/Hindi support in wordcloud
+- Multilingual (Top-50 Languages) support in wordcloud
 - Individual Messenger Statistics
 - Activity Cluster
 - Emoji's distrubution
@@ -67,16 +69,19 @@ st.sidebar.markdown('''** Application Feature: **
 - Sentiment Score of Member
 ''')
 
-link = '[GitHub](https://github.com/raahoolkumeriya/whatsapp-chat-streamlit)'
-st.sidebar.markdown("Source code")
-st.sidebar.markdown(link, unsafe_allow_html=True)
 
+
+st.sidebar.markdown("`View Code on Github`")
+st.sidebar.markdown('<iframe src="https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>', unsafe_allow_html=True)
+st.sidebar.markdown('<iframe src="https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit&type=star&count=true&size=large" frameborder="0" scrolling="0" width="150" height="30" title="GitHub"></iframe>', unsafe_allow_html=True)
+st.sidebar.markdown('<iframe src="https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit&type=watch&count=true&size=large&v=2" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>', unsafe_allow_html=True)
+st.sidebar.markdown('<iframe src="https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit&type=fork&count=true&size=large" frameborder="0" scrolling="0" width="170" height="30" title="GitHub"></iframe>', unsafe_allow_html=True)
 
 class WordCloudDisplay:
     """
     Word Cloud Display
     """
-    def add_multilingual_stopwords(self):
+    def add_multilingual_stopwords(self) -> Dict:
         """
         Function add Hindi, Marathi for the moment as
         Multilingula support for stopwords
@@ -89,7 +94,7 @@ class WordCloudDisplay:
                 multilingul_list.append(word)
         return set(STOPWORDS).union(set(multilingul_list))
 
-    def generate_word_cloud(self, text, title):
+    def generate_word_cloud(self, text: str, title: str) -> Any:
         """
         Generate Word Cloud for Text
         """
@@ -106,7 +111,7 @@ class WordCloudDisplay:
             contour_color='#5d0f24',
             contour_width=3,
             font_path='Laila-Regular.ttf',
-            background_color="white").generate_from_text(text)
+            background_color="white").generate(text)
         # Display the generated image:
         # the matplotlib way:
         plt.figure(figsize=(10, 8))
@@ -132,7 +137,7 @@ def prev_page():
     st.session_state.page -= 1
 
 
-def main():
+def main() -> None:
     """
     Function will process the txt data and process into
     Pandas Dataframe items
@@ -195,37 +200,28 @@ def main():
 
         # SECTION 3: Frequenctly use words
         st.header("🔘 Frequently used words")
-        st.markdown("----")
         sorted_authors = w.sorted_authors(cloud_df)
-        st.write("Select Member to see its Statistics")
         select_author = []
 
         select_author.append(st.selectbox('', sorted_authors))
         dummy_df = cloud_df[cloud_df['name'] == select_author[0]]
         text = " ".join(review for review in dummy_df.message)
 
-        col1, col2 = st.columns([2, 2])
-        with col1:
-            st.markdown(f"**Total Messages:** {df.shape[0]}")
-            st.markdown(f"""**Messages:**
-                {dummy_df[dummy_df['name'] == select_author[0]].shape[0]}""")
-            # number = df.groupby(
-            #     by=["name"], dropna=False).sum()['media'].get(
-            #         select_author[0])
-            # st.markdown(f"**Media Shared:** {number}")
+        col1, col2, col3, col4, col5 = st.columns(5)
+    
+        col1.metric(
+        "Posted Messages", dummy_df[dummy_df['name'] == select_author[0]].shape[0])
+        col2.metric("Emoji's Shared",
+            sum(df[df.name.str.contains(select_author[0][-5:])]
+            .emojis.str.len()))
+    
+        col3.metric("Link Shared", int(df[df.name == select_author[0]].urlcount.sum()))
+        col4.metric("Total Words", int(df[df.name == select_author[0]].word_count.sum()))
+        user_df = df[df.name.str.contains(select_author[0][-5:])]
+        average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
 
-        with col2:
-            st.markdown(f"**Highest Messanger:** {sorted_authors[0]}")
-            user_df = df[df.name.str.contains(select_author[0][-5:])]
-            average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
-            st.markdown(f"**Average words/Message:** {average}")
-
-            st.markdown(f"""**Emoji's Shared:**
-                {sum(df[df.name.str.contains(select_author[0][-5:])]
-                .emojis.str.len())}""")
-            # st.markdown(f"""**Link Shared:**
-            #     {df[df['urlcount'] == select_author[0] ].shape[0]}""")
-
+        col5.metric("Average words/Message", average)
+            
         if len(text) != 0:
             gen_wordcloud.generate_word_cloud(
                 text, "Word Cloud for individual Words")
@@ -235,7 +231,7 @@ def main():
 
         st.markdown("----")
         st.header("🔘 Words and Phrases frequently used in Chat")
-        st.info("Frquently used words or phrases by all members in group chat.\
+        st.info("🔋 Frequently used words or phrases by all members in group chat.\
             Most dicussion occurs around below words or used frequently.")
         text = " ".join(review for review in cloud_df.message)
         gen_wordcloud.generate_word_cloud(
@@ -243,36 +239,36 @@ def main():
 
         st.markdown("----")
         st.header("🔘 Most Active Member")
-        st.info("Member comparision based on the number of messages\
+        st.info("🔋 Member comparision based on the number of messages\
             he/she posted in group chat")
         st.pyplot(w.most_active_member(df))
 
         st.markdown("----")
         st.header("🔘  Most Active Day")
-        st.info("Member comparision based on the number of messages\
+        st.info("🔋 Member comparision based on the number of messages\
             he/she posted in group chat w.r.t Day")
         w.day_analysis(df)
         st.pyplot(w.most_active_day(df))
 
         st.markdown("----")
         st.header("🔘 Who uses more words in sentences")
-        st.info("Member uses more number of sentences during the conversation")
+        st.info("🔋 Member uses more number of sentences during the conversation")
         st.pyplot(w.max_words_used(df))
 
         st.markdown("----")
         st.header("🔘 Top-10 Media Contributor ")
-        st.info("Comparision of members who contributes more number of Images,\
+        st.info("🔋 Comparision of members who contributes more number of Images,\
             Video or Documents")
         st.pyplot(w.top_media_contributor(raw_df))
 
         st.markdown("----")
         st.header("🔘 Who shares Links in group most? ")
-        st.info("Members who shares internet links of information with others")
+        st.info("🔋 Members who shares internet links of information with others")
         st.pyplot(w.who_shared_links(df))
 
         st.markdown("----")
         st.header("🔘 Who has Positive Sentiment? ")
-        st.info("Member sentiment analysis score base on the words used in\
+        st.info("🔋 Member sentiment analysis score base on the words used in\
             messages. Sentiment Score above 0.5 to 1 is consider as Positive.\
             Pure English words and Phrases is ideal for calcalation")
         st.pyplot(w.sentiment_analysis(cloud_df))
@@ -283,35 +279,35 @@ def main():
 
         st.markdown("----")
         st.header("🔘 Most Active Day ")
-        st.info("Member who active for suitable Day")
+        st.info("🔋 Member who active for suitable Day")
         st.pyplot(w.most_suitable_day(df))
 
         st.markdown("----")
         st.header("🔘 Most Active Hour")
-        st.info("Member who active during suitable hours")
+        st.info("🔋 Member who active during suitable hours")
         st.pyplot(w.most_suitable_hour(df))
 
         st.markdown("----")
         st.header("🔘 Member activity Cluster")
-        st.info("Cluster hover about the total messages, Emoji's, Links, Words\
+        st.info("🔋 Cluster hover about the total messages, Emoji's, Links, Words\
             and Letter by individual member")
         st.write(w.message_cluster(df))
 
         st.markdown("----")
         st.header("🔘 Over the Time Analysis ")
-        st.info("Group activity over the time w.r.t to number of messages")
+        st.info("🔋 Group activity over the time w.r.t to number of messages")
         st.write(w.time_series_plot(df))
 
         st.markdown("----")
         st.header("🔘 Curious about Emoji's ?")
-        st.info("The most use Emoji's in converstion is show with\
+        st.info("🔋 The most use Emoji's in converstion is show with\
             larger sector")
         pie_display = w.pie_display_emojis(df)
         st.plotly_chart(pie_display)
 
         st.header("🔘 Take out some time to plant Trees 🌲🌳🌴🌵")
-        st.success("🌳 I already did, now it's your turn 🌿🌾☘️.\
-            Let's refresh Earth with Green")
+        st.success("🌳 I already did, now it's your turn ?\
+            🌿🌾☘️")
 
 
 if __name__ == "__main__":
