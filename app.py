@@ -105,12 +105,6 @@ def generate_word_cloud(text: str, title: str) -> Any:
     st.pyplot()
 
 
-uploaded_file = st.file_uploader(
-    "Choose a TXT file only",
-    type=['txt'],
-    accept_multiple_files=False)
-
-
 def next_page():
     """Paganation page Increment"""
     st.session_state.page += 1
@@ -228,97 +222,116 @@ def chart_display(data_frame):
     st.plotly_chart(pie_display)
 
 
+def file_process(data):
+    """
+    Accept File and process data
+    """
+    whatsapp = WhatsAppProcess()
+    message = whatsapp.apply_regex(data)
+    raw_df = process_data(message)
+    data_frame = whatsapp.get_dataframe(raw_df)
+    stats = statistics(raw_df, data_frame)
+
+    st.markdown(f'# {stats.get("group_name")}')
+
+    st.markdown("----")
+
+    # Pagination of dataframe
+    pagination_of_dataframe(raw_df)
+
+    # Show Statistics
+    display_statistics(stats)
+
+    cloud_df = whatsapp.cloud_data(raw_df)
+
+    # SECTION 3: Frequenctly use words
+    st.header("🔘 Frequently used words")
+    sorted_authors = sorted_authors_df(cloud_df)
+    select_author = []
+    select_author.append(st.selectbox('', sorted_authors))
+    dummy_df = cloud_df[cloud_df['name'] == select_author[0]]
+    text = " ".join(review for review in dummy_df.message)
+
+    col1, col2, col3, col4, col5 = st.columns(5)
+
+    col1.metric(
+        "Posted Messages",
+        dummy_df[dummy_df['name'] == select_author[0]].shape[0])
+    col2.metric(
+        "Emoji's Shared", sum(
+            data_frame[data_frame.name.str.contains(
+                select_author[0][-5:])].emojis.str.len()))
+
+    col3.metric("Link Shared", int(
+        data_frame[data_frame.name == select_author[0]].urlcount.sum()))
+    col4.metric("Total Words", int(
+        data_frame[data_frame.name == select_author[0]].word_count.sum()))
+    user_df = data_frame[data_frame.name.str.contains(
+        select_author[0][-5:])]
+    average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
+
+    col5.metric("Average words/Message", average)
+
+    if len(text) != 0:
+        generate_word_cloud(
+            text, "Word Cloud for individual Words")
+    else:
+        generate_word_cloud(
+            "NOWORD", "Word Cloud for individual Words")
+
+    st.markdown("----")
+    st.header("🔘 Words and Phrases frequently used in Chat")
+    st.info("🔋 Frequently used words or phrases by all members in group chat.\
+        Most dicussion occurs around below words or used frequently.")
+    text = " ".join(review for review in cloud_df.message)
+    generate_word_cloud(
+        text, "Word Cloud for Chat words")
+
+    whatsapp.day_analysis(data_frame)
+
+    chart_display(data_frame)
+
+    st.markdown("----")
+    st.header("🔘 Top-10 Media Contributor ")
+    st.info("🔋 Comparision of members who contributes more number of Images,\
+        Video or Documents")
+    st.pyplot(top_media_contributor(raw_df))
+
+    st.markdown("----")
+    st.header("🔘 Who has Positive Sentiment? ")
+    st.info("🔋 Member sentiment analysis score base on the words used in\
+        messages. Sentiment Score above 0.5 to 1 is consider as Positive.\
+        Pure English words and Phrases is ideal for calcalation")
+    st.pyplot(sentiment_analysis(cloud_df))
+
+    st.header("🔘 Take out some time to plant Trees 🌲🌳🌴🌵")
+    st.success("🌳 I already did, now it's your turn ?\
+        🌿🌾☘️")
+
+
 def main():
     """
     Function will process the txt data and process into
     Pandas Dataframe items
     """
+    c1, c2 = st.columns([3, 1])
+
+    uploaded_file = c1.file_uploader(
+        "Choose a TXT file only",
+        type=['txt'],
+        accept_multiple_files=False)
+
     if uploaded_file is not None:
         # Convert txt string to utf-8 Encoding
         data = uploaded_file.getvalue().decode("utf-8")
         # Compatible iOS and Android regex search
+        file_process(data)
 
-        whatsapp = WhatsAppProcess()
-        message = whatsapp.apply_regex(data)
-        raw_df = process_data(message)
-        data_frame = whatsapp.get_dataframe(raw_df)
-        stats = statistics(raw_df, data_frame)
-
-        st.markdown(f'# {stats.get("group_name")}')
-
-        st.markdown("----")
-
-        # Pagination of dataframe
-        pagination_of_dataframe(raw_df)
-
-        # Show Statistics
-        display_statistics(stats)
-
-        cloud_df = whatsapp.cloud_data(raw_df)
-
-        # SECTION 3: Frequenctly use words
-        st.header("🔘 Frequently used words")
-        sorted_authors = sorted_authors_df(cloud_df)
-        select_author = []
-        select_author.append(st.selectbox('', sorted_authors))
-        dummy_df = cloud_df[cloud_df['name'] == select_author[0]]
-        text = " ".join(review for review in dummy_df.message)
-
-        col1, col2, col3, col4, col5 = st.columns(5)
-
-        col1.metric(
-            "Posted Messages",
-            dummy_df[dummy_df['name'] == select_author[0]].shape[0])
-        col2.metric(
-            "Emoji's Shared", sum(
-                data_frame[data_frame.name.str.contains(
-                    select_author[0][-5:])].emojis.str.len()))
-
-        col3.metric("Link Shared", int(
-            data_frame[data_frame.name == select_author[0]].urlcount.sum()))
-        col4.metric("Total Words", int(
-            data_frame[data_frame.name == select_author[0]].word_count.sum()))
-        user_df = data_frame[data_frame.name.str.contains(
-            select_author[0][-5:])]
-        average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
-
-        col5.metric("Average words/Message", average)
-
-        if len(text) != 0:
-            generate_word_cloud(
-                text, "Word Cloud for individual Words")
-        else:
-            generate_word_cloud(
-                "NOWORD", "Word Cloud for individual Words")
-
-        st.markdown("----")
-        st.header("🔘 Words and Phrases frequently used in Chat")
-        st.info("🔋 Frequently used words or phrases by all members in group chat.\
-            Most dicussion occurs around below words or used frequently.")
-        text = " ".join(review for review in cloud_df.message)
-        generate_word_cloud(
-            text, "Word Cloud for Chat words")
-
-        whatsapp.day_analysis(data_frame)
-
-        chart_display(data_frame)
-
-        st.markdown("----")
-        st.header("🔘 Top-10 Media Contributor ")
-        st.info("🔋 Comparision of members who contributes more number of Images,\
-            Video or Documents")
-        st.pyplot(top_media_contributor(raw_df))
-
-        st.markdown("----")
-        st.header("🔘 Who has Positive Sentiment? ")
-        st.info("🔋 Member sentiment analysis score base on the words used in\
-            messages. Sentiment Score above 0.5 to 1 is consider as Positive.\
-            Pure English words and Phrases is ideal for calcalation")
-        st.pyplot(sentiment_analysis(cloud_df))
-
-        st.header("🔘 Take out some time to plant Trees 🌲🌳🌴🌵")
-        st.success("🌳 I already did, now it's your turn ?\
-            🌿🌾☘️")
+    # DEMO
+    if c2.button("Try Demo 💀🛻 MAD MAX: Fury Road Movie dialogues."):
+        with open('demo_chat.txt', 'r') as read_file:
+            data = read_file.read()
+        file_process(data)
 
 
 if __name__ == "__main__":

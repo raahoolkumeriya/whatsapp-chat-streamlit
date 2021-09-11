@@ -122,7 +122,8 @@ class WhatsAppProcess:
             'Missed video call', 'Missed group video call',
             'Missed voice call', '<Media omitted>',
             'This message was deleted', 'image omitted',
-            'video omitted', 'You deleted this message']
+            'video omitted', 'You deleted this message',
+            'sticker omitted']
 
     def apply_regex(self, data: str) -> List:
         """
