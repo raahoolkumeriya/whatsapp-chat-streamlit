@@ -3,6 +3,7 @@ Streamlit WhatsApp Chat Processor
 """
 import re
 import os
+import time
 import warnings
 from typing import Dict, Any
 import streamlit as st
@@ -31,6 +32,30 @@ st.set_page_config(
     # layout="wide",
     initial_sidebar_state="expanded",
 )
+
+
+# NAV BAR
+_ , n2, n3 = st.columns([4,2,1])
+
+nav_area = st.empty()
+
+if n2.button("Privacy Statement"):
+    with st.empty():
+        for seconds in range(5):
+            nav_area.success("`🟩 We are commit and respect everyone Privacy.\
+                We are NOT saving or replicating any chat content.\
+                This application is process which transform text 📃 into informative graphics 📊.`")
+            time.sleep(1)
+
+
+if n3.button("About"):
+    with st.empty():
+        for seconds in range(3):
+            nav_area.write("🧊 For More details Please visit Github Link.")
+            time.sleep(1)
+
+nav_area.write("")
+
 
 st.markdown(HIDE_STREAMLIT_STYLE, unsafe_allow_html=True)
 st.markdown(MAIN_STYLE, unsafe_allow_html=True)
@@ -304,7 +329,8 @@ def file_process(data):
         Pure English words and Phrases is ideal for calcalation")
     st.pyplot(sentiment_analysis(cloud_df))
 
-    st.header("🔘 Take out some time to plant Trees 🌲🌳🌴🌵")
+    st.markdown("----")
+    st.header("🌳 Take out some time to plant Trees 🌲🌴🌵")
     st.success("🌳 I already did, now it's your turn ?\
         🌿🌾☘️")
 
@@ -314,6 +340,7 @@ def main():
     Function will process the txt data and process into
     Pandas Dataframe items
     """
+
     c1, c2 = st.columns([3, 1])
 
     uploaded_file = c1.file_uploader(
