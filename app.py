@@ -3,6 +3,7 @@ Streamlit WhatsApp Chat Processor
 """
 import re
 import os
+import time
 import warnings
 from typing import Dict, Any
 import streamlit as st
@@ -32,6 +33,29 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+
+# Application NAV BAR
+_, n2, n3 = st.columns([4, 2, 1])
+nav_area = st.empty()
+
+if n2.button("Privacy Statement"):
+    with st.empty():
+        for seconds in range(5):
+            nav_area.success("`🟩 We are commit and respect everyone Privacy.\
+                We are NOT saving or replicating any chat content.\
+                This application is process which transform text 📃 \
+                    into informative graphics 📊.`")
+            time.sleep(1)
+
+if n3.button("About"):
+    with st.empty():
+        for seconds in range(3):
+            nav_area.write("🧊 For More details Please visit Github Link.")
+            time.sleep(1)
+
+nav_area.write("")
+
+# Application Setup
 st.markdown(HIDE_STREAMLIT_STYLE, unsafe_allow_html=True)
 st.markdown(MAIN_STYLE, unsafe_allow_html=True)
 st.title(TITLE)
@@ -46,7 +70,7 @@ st.sidebar.markdown('''This application is compatible with both `iOS` and\
     `Android` device exported chat.''')
 st.sidebar.markdown(APPLICATION_FEATURE)
 
-
+# Github button size display
 BUTTON_SIZE = 'count=true&size=large&v=2'
 
 st.sidebar.markdown("`View Code on Github`")
@@ -66,8 +90,17 @@ st.sidebar.markdown(
 
 def add_multilingual_stopwords() -> Dict:
     """
-    Function add Hindi, Marathi for the moment as
-    Multilingula support for stopwords
+    Function read language file stop words and covert
+    them into List of STOPWORDS.
+    Top languages added under stopwords folder.
+
+    attributes
+    ----------
+    None
+
+    Returns
+    -------
+    set: Distinct list of words
     """
     multilingul_list = []
     for file in os.listdir('stopwords'):
@@ -80,7 +113,17 @@ def add_multilingual_stopwords() -> Dict:
 
 def generate_word_cloud(text: str, title: str) -> Any:
     """
-    Generate Word Cloud for Text
+    Function takes text as input and transform it to
+    WordCloud display
+
+    attributes
+    ----------
+    text (str): String of words
+    title (str): title Sting
+
+    Return
+    ------
+    Matplotlib figure for wordcloud
     """
     # wordcloud = WordCloud(
     #   stopwords=stopwords, background_color="white").generate(text)
@@ -106,23 +149,23 @@ def generate_word_cloud(text: str, title: str) -> Any:
 
 
 def next_page():
-    """Paganation page Increment"""
+    """Pagination page Increment"""
     st.session_state.page += 1
 
 
 def prev_page():
-    """Paganation page decrement"""
+    """Pagination page decrement"""
     st.session_state.page -= 1
 
 
 def pagination_of_dataframe(raw_df):
     """
-    Pagination Code for display dataframe
+    Display DataFrame in Pagination format
     """
     if "page" not in st.session_state:
         st.session_state.page = 0
     col1, _, _, col2, _, col3 = st.columns(6)
-    if st.session_state.page < 4:
+    if st.session_state.page < 10:
         col3.button("Next", on_click=next_page)
     else:
         col3.write("")  # this makes the empty column show up on mobile
@@ -134,13 +177,13 @@ def pagination_of_dataframe(raw_df):
     start = 10 * st.session_state.page
     end = start + 10
     st.write("")
-    st.dataframe(raw_df[["name", "message", "datetime"]].iloc[start:end])
+    st.dataframe(raw_df[["datetime", "name", "message"]].iloc[start:end])
     st.markdown("#")
 
 
 def display_statistics(stats):
     """
-    Show the Statistics
+    Display Chat statistics with metric format
     """
     col1, col2, col3, col4 = st.columns(4)
     col1.metric(
@@ -164,7 +207,7 @@ def display_statistics(stats):
 
 def chart_display(data_frame):
     """
-    Chart Display function
+    Combine Charts display function
     """
     st.markdown("----")
     st.header("🔘 Most Active Member")
@@ -224,7 +267,7 @@ def chart_display(data_frame):
 
 def file_process(data):
     """
-    Accept File and process data
+    Regex passed message format frocessing function
     """
     whatsapp = WhatsAppProcess()
     message = whatsapp.apply_regex(data)
@@ -236,15 +279,17 @@ def file_process(data):
 
     st.markdown("----")
 
-    # Pagination of dataframe
+    # Pagination of dataframe Display
     pagination_of_dataframe(raw_df)
 
-    # Show Statistics
+    # Display Statistics
     display_statistics(stats)
 
+    # Formation of Word Cloud Dataframe
     cloud_df = whatsapp.cloud_data(raw_df)
 
-    # SECTION 3: Frequenctly use words
+    # Frequently used word and word Cloud display for
+    #   Indidvidual member and statitics
     st.header("🔘 Frequently used words")
     sorted_authors = sorted_authors_df(cloud_df)
     select_author = []
@@ -261,7 +306,6 @@ def file_process(data):
         "Emoji's Shared", sum(
             data_frame[data_frame.name.str.contains(
                 select_author[0][-5:])].emojis.str.len()))
-
     col3.metric("Link Shared", int(
         data_frame[data_frame.name == select_author[0]].urlcount.sum()))
     col4.metric("Total Words", int(
@@ -269,7 +313,6 @@ def file_process(data):
     user_df = data_frame[data_frame.name.str.contains(
         select_author[0][-5:])]
     average = round(npsum(user_df.word_count)/user_df.shape[0], 2)
-
     col5.metric("Average words/Message", average)
 
     if len(text) != 0:
@@ -287,8 +330,10 @@ def file_process(data):
     generate_word_cloud(
         text, "Word Cloud for Chat words")
 
+    # DataFrame processing w.r.t Day hour and Date
     whatsapp.day_analysis(data_frame)
 
+    # Calling Combine chart function
     chart_display(data_frame)
 
     st.markdown("----")
@@ -304,7 +349,9 @@ def file_process(data):
         Pure English words and Phrases is ideal for calcalation")
     st.pyplot(sentiment_analysis(cloud_df))
 
-    st.header("🔘 Take out some time to plant Trees 🌲🌳🌴🌵")
+    # Footer Message for Tree Plantation
+    st.markdown("----")
+    st.header("🌳 Take out some time to plant Trees 🌲🌴🌵")
     st.success("🌳 I already did, now it's your turn ?\
         🌿🌾☘️")
 
@@ -314,8 +361,9 @@ def main():
     Function will process the txt data and process into
     Pandas Dataframe items
     """
-    c1, c2 = st.columns([3, 1])
 
+    c1, c2 = st.columns([3, 1])
+    # Uploaded file processing function
     uploaded_file = c1.file_uploader(
         "Choose a TXT file only",
         type=['txt'],
@@ -327,7 +375,7 @@ def main():
         # Compatible iOS and Android regex search
         file_process(data)
 
-    # DEMO
+    # Static File processin For DEMO purpose
     if c2.button("Try Demo 💀🛻 MAD MAX: Fury Road Movie dialogues."):
         with open('demo_chat.txt', 'r') as read_file:
             data = read_file.read()

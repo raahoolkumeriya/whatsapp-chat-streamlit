@@ -1,17 +1,36 @@
 """Hold COnfiguration details for Application"""
 
+# Banner Display on backend terminal
 BANNER = """
 Welcome to
 
-    A Data Science Project for Fun :-)
+       \\ \\        / / |         | |
+        \\ \\  /\\  / /| |__   __ _| |_ ___  __ _ _ __  _ __
+         \\ \\/  \\/ / | '_ \\ / _` | __/ __|/ _` | '_ \\| '_ \\
+          \\  /\\  /  | | | | (_| | |_\\__ \\ (_| | |_) | |_) |
+         __\\/_ \\/   |_| |_|\\__,_|\\__|___/\\__,_| .__/| .__/
+        / ____| |         | |                 | |   | |
+       | |    | |__   __ _| |_                |_|   |_|
+       | |    | '_ \\ / _` | __|
+       | |____| | | | (_| | |_
+        \\_____|_| |_|\\__,_|\\__|
+                |  __ \\
+                | |__) | __ ___   ___ ___  ___ ___  ___  _ __
+                |  ___/ '__/ _ \\ / __/ _ \\/ __/ __|/ _ \\| '__|
+                | |   | | | (_) | (_|  __/\\__ \\__ \\ (_) | |
+                |_|   |_|  \\___/ \\___\\___||___/___/\\___/|_|
 
-    build: Version 2.0.1 """
+    A Data Science Project for Fun :-)
+    build: Version 2.0.1
+    """
 
 TITLE = "WhatsApp Chat Processor"
 
+# Github button display on sidebar SETUP
 REPO_URL = "https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit"
 FORMAT_BUTTON = 'frameborder="0" scrolling="0" width="170" height="30" title="GitHub"'
 
+# Streamlit footer addition and remove the default streamlit features
 HIDE_STREAMLIT_STYLE = """
 <style>
 #MainMenu {visibility: hidden;}
@@ -28,6 +47,7 @@ footer:after {
 }
 </style>"""
 
+# Application Formatting for good display
 PADDING = 0
 MAIN_STYLE = """ <style>
     .reportview-container .main .block-container{{
@@ -37,6 +57,7 @@ MAIN_STYLE = """ <style>
         padding-bottom: {PADDING}rem;
     }} </style> """
 
+# Application Features text for display on Sidebar
 APPLICATION_FEATURE = '''
 ** Application Feature: **
 - Multilingual Support

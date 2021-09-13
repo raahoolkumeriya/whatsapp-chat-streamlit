@@ -10,14 +10,30 @@ from pandas.errors import EmptyDataError
 def get_members(data_frame: Any) -> Any:
     """
     Return unique member list
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    DataFrame Series
     """
     logging.info("WhatsApp/get_members()")
     return data_frame["name"].unique()
 
 
-def sorted_authors_df(data_frame: Any) -> Any:
+def sorted_authors_df(data_frame: Any) -> List:
     """
     Return sorted member list base on number of messages
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    List : List of memebrs
     """
     logging.info("WhatsApp/sorted_authors()")
     sorted_authors = data_frame.groupby('name')['message'].count()\
@@ -28,6 +44,15 @@ def sorted_authors_df(data_frame: Any) -> Any:
 def statistics(raw_df: Any, data_frame: Any) -> Dict:
     """
     Statistics for summuary results
+
+    Attributes
+    ----------
+    Dataframe (pandas DF) : raw Dataframe
+    Dataframe (pandas DF) : cleaned dataframe
+
+    Retrurns
+    --------
+    Dict: Calculated features of members
     """
     logging.info("WhatsApp/statistics()")
     author_list = get_members(data_frame)
@@ -47,6 +72,14 @@ def statistics(raw_df: Any, data_frame: Any) -> Dict:
 def extract_emojis(string: str) -> str:
     """
     Extract emojis from message string
+
+    Attributes
+    ----------
+    string (str): text with Emoji's content message
+
+    Retrurns
+    --------
+    str: Emoji's extracted from message
     """
     return ''.join(c for c in string if c in emoji.UNICODE_EMOJI['en'])
 
@@ -54,6 +87,14 @@ def extract_emojis(string: str) -> str:
 def process_data(messages: str) -> Any:
     """
     Converting string messages into DataFrame
+
+    Attributes
+    ----------
+    message (str): String of text
+
+    Retrurns
+    --------
+    DataFrame (pandas DF)
     """
     logging.info("WhatsApp/process_data()")
     raw_df = pd.DataFrame(
@@ -100,6 +141,7 @@ class WhatsAppProcess:
     Exploratory Data Analysis for WhatsApp chat
     """
     def __init__(self):
+        """Constructor object"""
         logging.info("WhatsApp Chat initiate")
         self.url_pattern = r'(https?://\S+)'
         self.weeks = {
@@ -118,6 +160,7 @@ class WhatsAppProcess:
             r'(\[\d+/\d+/\d+, \d+:\d+:\d+ [A-Z][A-Z]\]) (.*?): (.*)',
             r'(\d+/\d+/\d+, \d+:\d+ [a-zA-Z][a-zA-Z]) - (.*?): (.*)'
         ]
+        # Messages which want to remove from Dataframe
         self.ignore = [
             'Missed video call', 'Missed group video call',
             'Missed voice call', '<Media omitted>',
@@ -143,6 +186,14 @@ class WhatsAppProcess:
     def get_dataframe(self, raw_df: Any) -> Any:
         """
         Formation of Clean DataFrame
+
+        Attributes
+        ----------
+        Dataframe (pandas DF)
+
+        Retrurns
+        --------
+        Dataframe (pandas DF)
         """
         logging.info("WhatsApp/get_dataframe()")
         # FORMATION OF NEW DF for Analysis
@@ -165,6 +216,14 @@ class WhatsAppProcess:
     def day_analysis(self, data_frame: Any) -> Any:
         """
         Exploratory Data Analysis on Dataframe
+
+        Attributes
+        ----------
+        Dataframe (pandas DF)
+
+        Retrurns
+        --------
+        Dataframe (pandas DF)
         """
         logging.info("WhatsApp/day_analysis()")
         # lst = data_frame.name.unique()
@@ -194,6 +253,14 @@ class WhatsAppProcess:
     def cloud_data(self, raw_df: Any) -> Any:
         """
         Word Cloud DataFrame Formation
+
+        Attributes
+        ----------
+        Dataframe (pandas DF)
+
+        Retrurns
+        --------
+        Dataframe (pandas DF)
         """
         logging.info("WhatsApp/cloud_data()")
         sep = '|'
