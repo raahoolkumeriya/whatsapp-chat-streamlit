@@ -1,6 +1,7 @@
 
 import unittest
-from chat_eda import WhatsAppProcess, process_data, statistics, extract_emojis, sorted_authors_df
+from chat_eda import WhatsAppProcess, process_data,\
+    statistics, extract_emojis, sorted_authors_df
 
 
 class TestWhatsAppProcess(unittest.TestCase):
@@ -21,20 +22,24 @@ class TestWhatsAppProcess(unittest.TestCase):
             "Message does not found in Ignore list"
 
     def test_get_dataframe(self):
-        assert str(type(self.raw_df)) == "<class 'pandas.core.frame.DataFrame'>",\
+        assert str(type(self.raw_df)) ==\
+            "<class 'pandas.core.frame.DataFrame'>",\
             "Return response is not Pandas DataFrame"
 
     def test_get_day_analysis_dataframe(self):
         assert str(type(self.whatsapp.day_analysis(self.data_frame))) ==\
-            "<class 'pandas.core.frame.DataFrame'>", "Return response is not Pandas DataFrame"
+            "<class 'pandas.core.frame.DataFrame'>",\
+            "Return response is not Pandas DataFrame"
 
     def test_get_cloud_dataframe(self):
         assert str(type(self.whatsapp.cloud_data(self.raw_df))) ==\
-            "<class 'pandas.core.frame.DataFrame'>", "Return response is not Pandas DataFrame"
+            "<class 'pandas.core.frame.DataFrame'>",\
+            "Return response is not Pandas DataFrame"
 
     def test_get_unique_member(self):
-        assert self.data_frame.size == 352, "DataFrame size is not Matched"
-    
+        assert self.data_frame.size == 352,\
+            "DataFrame size is not Matched"
+
     def test_statistics_data(self):
         data_string = {
             'group_name': 'MAD MAX Fury Road 🛻',
@@ -45,10 +50,12 @@ class TestWhatsAppProcess(unittest.TestCase):
             'total_messages': 32,
             'your_deleted_message': 0
         }
-        assert self.stats == data_string, "Statistics return from DataFrame analysis"
+        assert self.stats == data_string,\
+            "Statistics return from DataFrame analysis"
 
     def test_emojis_function(self):
-        assert extract_emojis(self.data[-20:]) == "💀🛻🔥", "Emojis extraction failed"
+        assert extract_emojis(self.data[-20:]) == "💀🛻🔥",\
+            "Emojis extraction failed"
 
     def test_sorted_authors_df(self):
         list_member = [

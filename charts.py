@@ -15,6 +15,14 @@ import matplotlib.pyplot as plt
 def message_cluster(data_frame: Any) -> Any:
     """
     Display Message Cluster base on the message statistics
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     new_df = pd.DataFrame(data_frame[['message']].groupby(
         by=data_frame['name']).count())
@@ -39,6 +47,14 @@ def message_cluster(data_frame: Any) -> Any:
 def pie_display_emojis(data_frame: Any) -> Any:
     """
     Pie chart formation for Emoji's Distrubution
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Plotly Figure (pyDash)
     """
     logging.info("WhatsApp/pie_display_emojis()")
     total_emojis_list = list(set([a for b in data_frame.emojis for a in b]))
@@ -57,6 +73,14 @@ def pie_display_emojis(data_frame: Any) -> Any:
 def time_series_plot(data_frame: Any) -> Any:
     """
     Time analysis w.r.t to message in chat
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Plotly Figure (pyDash)
     """
     logging.info("WhatsApp/time_series_plot()")
     z_value = data_frame['date'].value_counts()
@@ -74,7 +98,15 @@ def time_series_plot(data_frame: Any) -> Any:
 
 def plot_data(data_string) -> Any:
     """
-    Graph Plot function
+    Common Bar chat Function for plotting data
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/plot_data()")
     fig, ax_value = plt.subplots()
@@ -122,6 +154,14 @@ def plot_data(data_string) -> Any:
 def max_words_used(data_frame: Any) -> Any:
     """
     Maximum words used in sentence in group chat
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/max_words_used()")
     # Counting number of letters in each message
@@ -147,6 +187,14 @@ def max_words_used(data_frame: Any) -> Any:
 def most_active_member(data_frame: Any) -> Any:
     """
     Most active memeber as per number of messages in group
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/most_active_member()")
     # Mostly Active Author in the Group
@@ -166,6 +214,14 @@ def most_active_member(data_frame: Any) -> Any:
 def most_active_day(data_frame: Any) -> Any:
     """
     Most active day in Group as per messages numbers
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/most_active_day()")
     active_day = data_frame['day'].value_counts()
@@ -183,6 +239,14 @@ def most_active_day(data_frame: Any) -> Any:
 def top_media_contributor(data_frame: Any) -> Any:
     """
     Top 10 members who shared media's in group
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/top_media_contributor()")
     # Top-10 Media Contributor of Group
@@ -202,6 +266,14 @@ def top_media_contributor(data_frame: Any) -> Any:
 def who_shared_links(data_frame: Any) -> Any:
     """
     Top 10 members Who shared maximum links in Group
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/who_shared_links()")
     # Member who has shared max numbers of link in Group
@@ -221,6 +293,14 @@ def who_shared_links(data_frame: Any) -> Any:
 def time_when_group_active(data_frame: Any) -> Any:
     """
     Most Messages Analsyis w.r.t to Time
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/time_when_group_active()")
     # Time whenever the group was highly active
@@ -238,6 +318,14 @@ def time_when_group_active(data_frame: Any) -> Any:
 def most_suitable_hour(data_frame: Any) -> Any:
     """
     Most Messages Analsyis w.r.t to Hour
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/most_suitable_hour()")
     # Time whenever the group was highly active
@@ -255,6 +343,14 @@ def most_suitable_hour(data_frame: Any) -> Any:
 def most_suitable_day(data_frame: Any) -> Any:
     """
     Most Messages Analsyis w.r.t to Day
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     logging.info("WhatsApp/most_suitable_day()")
     # Time whenever the group was highly active
@@ -272,6 +368,14 @@ def most_suitable_day(data_frame: Any) -> Any:
 def sentiment_analysis(cloud_df: Any) -> Any:
     """
     Sentiment analysis score
+
+    Attributes
+    ----------
+    Dataframe (pandas DF)
+
+    Retrurns
+    --------
+    Matplotlib Figure
     """
     cloud_df['sentiment'] = cloud_df.message.apply(
         lambda text: TextBlob(text).sentiment.polarity)

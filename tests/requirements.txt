@@ -1,4 +1,4 @@
-streamlit==0.84.0
+streamlit==0.88.0
 wordcloud==1.8.1
 pandas==1.2.3
 numpy==1.18.5
@@ -8,3 +8,4 @@ plotly==5.0.0
 pytest>=5.4
 seleniumbase>=1.63
 opencv-python>=4.3
+textblob==0.15.3
