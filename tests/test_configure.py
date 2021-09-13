@@ -27,8 +27,7 @@ class TestConfigure(unittest.TestCase):
 
     def test_configurational_variable_Repo_url(self):
         assert configure.REPO_URL == \
-            "https://ghbtns.com/github-btn.html?user=\
-                raahoolkumeriya&repo=whatsapp-chat-streamlit",\
+            "https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit",\
             "REPO_URL is not set in configuration file"
 
     def test_configurational_variable_format_button(self):

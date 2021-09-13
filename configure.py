@@ -27,8 +27,7 @@ Welcome to
 TITLE = "WhatsApp Chat Processor"
 
 # Github button display on sidebar SETUP
-REPO_URL = "https://ghbtns.com/github-btn.html?user=\
-    raahoolkumeriya&repo=whatsapp-chat-streamlit"
+REPO_URL = "https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit"
 FORMAT_BUTTON = 'frameborder="0" scrolling="0" width="170" \
     height="30" title="GitHub"'
 
