@@ -28,8 +28,7 @@ TITLE = "WhatsApp Chat Processor"
 
 # Github button display on sidebar SETUP
 REPO_URL = "https://ghbtns.com/github-btn.html?user=raahoolkumeriya&repo=whatsapp-chat-streamlit"
-FORMAT_BUTTON = 'frameborder="0" scrolling="0" width="170" \
-    height="30" title="GitHub"'
+FORMAT_BUTTON = 'frameborder="0" scrolling="0" width="170" height="30" title="GitHub"'
 
 # Streamlit footer addition and remove the default streamlit features
 HIDE_STREAMLIT_STYLE = """
