@@ -84,6 +84,24 @@ def extract_emojis(string: str) -> str:
     return ''.join(c for c in string if c in emoji.UNICODE_EMOJI['en'])
 
 
+def give_emoji_free_text(text: str) -> str:
+    """
+    Emojis free string
+
+    Attributes
+    ----------
+    string (str): text with Emoji's content message
+
+    Retrurns
+    --------
+    str: Emoji's extracted from message
+    """
+    allchars = [str for str in text]
+    emoji_list = [c for c in allchars if c in emoji.UNICODE_EMOJI]
+    clean_text = ' '.join([str for str in text.split() if not any(i in str for i in emoji_list)])
+    return clean_text
+
+
 def process_data(messages: str) -> Any:
     """
     Converting string messages into DataFrame
@@ -167,6 +185,23 @@ class WhatsAppProcess:
             'This message was deleted', 'image omitted',
             'video omitted', 'You deleted this message',
             'sticker omitted']
+        self.emoji_pattern = re.compile("["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U0001F1F2-\U0001F1F4"  # Macau flag
+            u"\U0001F1E6-\U0001F1FF"  # flags
+            u"\U0001F600-\U0001F64F"
+            u"\U00002702-\U000027B0"
+            u"\U000024C2-\U0001F251"
+            u"\U0001f926-\U0001f937"
+            u"\U0001F1F2"
+            u"\U0001F1F4"
+            u"\U0001F620"
+            u"\u200d"
+            u"\u2640-\u2642"
+            "]+", flags=re.UNICODE)
 
     def apply_regex(self, data: str) -> List:
         """
@@ -269,11 +304,9 @@ class WhatsAppProcess:
         modified_df = cloud_df.copy()
         modified_df.message = cloud_df.loc[:, 'message'].apply(
             lambda s: s.lower())\
+            .apply(lambda s: self.emoji_pattern.sub(r'', s))\
             .str.replace('\n|\t', '', regex=True)\
             .str.replace(' {2,}', ' ', regex=True)\
             .str.strip().replace(r'http\S+', '', regex=True)\
             .replace(r'www\S+', '', regex=True)
-        # Remove EMoji's
-        final_df = modified_df.astype(str).apply(
-            lambda x: x.str.encode('ascii', 'ignore').str.decode('ascii'))
-        return final_df
+        return  modified_df

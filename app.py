@@ -56,8 +56,8 @@ if n3.button("About"):
 nav_area.write("")
 
 # Application Setup
-st.markdown(HIDE_STREAMLIT_STYLE, unsafe_allow_html=True)
-st.markdown(MAIN_STYLE, unsafe_allow_html=True)
+# st.markdown(HIDE_STREAMLIT_STYLE, unsafe_allow_html=True)
+# st.markdown(MAIN_STYLE, unsafe_allow_html=True)
 st.title(TITLE)
 
 st.header("Messages in your chat group, `says something?`...Let's find out")
@@ -109,7 +109,7 @@ def add_multilingual_stopwords() -> Dict:
             word = re.sub('[\n]', '', word)
             multilingul_list.append(word)
     return set(STOPWORDS).union(set(multilingul_list))
-
+    
 
 def generate_word_cloud(text: str, title: str) -> Any:
     """
