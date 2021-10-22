@@ -6,7 +6,7 @@ from processor.transformers.chat_eda import WhatsAppProcess, process_data,\
 
 class TestWhatsAppProcess(unittest.TestCase):
     def setUp(self):
-        with open('demo_chat.txt', 'r') as read_file:
+        with open('configs/demo_chat.txt', 'r') as read_file:
             self.data = read_file.read()
         self.whatsapp = WhatsAppProcess()
         self.message = self.whatsapp.apply_regex(self.data)
@@ -37,7 +37,7 @@ class TestWhatsAppProcess(unittest.TestCase):
             "Return response is not Pandas DataFrame"
 
     def test_get_unique_member(self):
-        assert self.data_frame.size == 352,\
+        assert self.data_frame.size == 363,\
             "DataFrame size is not Matched"
 
     def test_statistics_data(self):
@@ -47,14 +47,14 @@ class TestWhatsAppProcess(unittest.TestCase):
             'media_message': 0,
             'total_deleted_messages': 0,
             'total_members': 9,
-            'total_messages': 32,
+            'total_messages': 33,
             'your_deleted_message': 0
         }
         assert self.stats == data_string,\
             "Statistics return from DataFrame analysis"
 
     def test_emojis_function(self):
-        assert extract_emojis(self.data[-20:]) == "💀🛻🔥",\
+        assert extract_emojis(self.data[-19:]) == "💀🛻🔥",\
             "Emojis extraction failed"
 
     def test_sorted_authors_df(self):
