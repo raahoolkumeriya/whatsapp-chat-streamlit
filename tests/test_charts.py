@@ -1,6 +1,6 @@
 
 import unittest
-from chat_eda import WhatsAppProcess, process_data
+from processor.transformers.chat_eda import WhatsAppProcess, process_data
 from unittest import mock
 
 

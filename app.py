@@ -5,19 +5,23 @@ import re
 import os
 import time
 import warnings
+import logging
+import logging.config
+import yaml
 from typing import Dict, Any
 import streamlit as st
 from numpy import sum as npsum
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
-from chat_eda import WhatsAppProcess, sorted_authors_df,\
+from processor.transformers.chat_eda import WhatsAppProcess, sorted_authors_df,\
     statistics, process_data
-from charts import pie_display_emojis, time_series_plot,\
+from processor.graphs.charts import pie_display_emojis, time_series_plot,\
     message_cluster, most_active_member, most_active_day,\
     max_words_used, top_media_contributor, who_shared_links,\
     sentiment_analysis, most_suitable_day, most_suitable_hour
-from configure import BANNER, TITLE, REPO_URL, FORMAT_BUTTON,\
+from processor.common.configure import BANNER, TITLE, REPO_URL, FORMAT_BUTTON,\
     HIDE_STREAMLIT_STYLE, MAIN_STYLE, APPLICATION_FEATURE
+
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
@@ -103,8 +107,8 @@ def add_multilingual_stopwords() -> Dict:
     set: Distinct list of words
     """
     multilingul_list = []
-    for file in os.listdir('stopwords'):
-        stopword = open('stopwords/' + file, "r")
+    for file in os.listdir('configs/stopwords'):
+        stopword = open('configs/stopwords/' + file, "r")
         for word in stopword:
             word = re.sub('[\n]', '', word)
             multilingul_list.append(word)
@@ -361,6 +365,14 @@ def main():
     Function will process the txt data and process into
     Pandas Dataframe items
     """
+    # Parsing YAML file
+    config = 'configs/chat_logging.yml'
+    config = yaml.safe_load(open(config))
+    # configure logging
+    log_config = config['logging']
+    logging.config.dictConfig(log_config)
+    logger = logging.getLogger(__name__)
+    logger.info("Welcome to WhatsApp Chat Processor")    
 
     c1, c2 = st.columns([3, 1])
     # Uploaded file processing function
@@ -377,10 +389,10 @@ def main():
 
     # Static File processin For DEMO purpose
     if c2.button("Try Demo 💀🛻 MAD MAX: Fury Road Movie dialogues."):
-        with open('demo_chat.txt', 'r') as read_file:
+        with open('configs/demo_chat.txt', 'r') as read_file:
             data = read_file.read()
         file_process(data)
-
+        
 
 if __name__ == "__main__":
     print(BANNER)
