@@ -1,6 +1,6 @@
 
 import unittest
-import configure
+import processor.common.configure as configure
 
 HIDE_STREAMLIT_STYLE = """
 <style>
