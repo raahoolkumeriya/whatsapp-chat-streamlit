@@ -1,7 +1,7 @@
 """Exploratory Data Analysis"""
 import re
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, NamedTuple
 import pandas as pd
 import emoji
 from pandas.errors import EmptyDataError
@@ -102,7 +102,7 @@ def give_emoji_free_text(text: str) -> str:
     return clean_text
 
 
-def process_data(messages: str) -> Any:
+def process_data(messages: str) -> pd.DataFrame:
     """
     Converting string messages into DataFrame
 
@@ -154,37 +154,33 @@ def process_data(messages: str) -> Any:
     return raw_df
 
 
-class WhatsAppProcess:
+class WhatsAppConfig(NamedTuple):
     """
-    Exploratory Data Analysis for WhatsApp chat
+    class for Whatsapp Configuration
+    
+    url_pattern: https url pattern
+    weeks: Week days dict
+    regex_list: regex list for chat formatting
+    ignore: Text to ignore in whatsapp caht
     """
-    def __init__(self):
-        """Constructor object"""
-        logging.info("WhatsApp Chat initiate")
-        self.url_pattern = r'(https?://\S+)'
-        self.weeks = {
-            0: 'Monday',
-            1: 'Tuesday',
-            2: 'Wednesday',
-            3: 'Thrusday',
-            4: 'Friday',
-            5: 'Saturday',
-            6: 'Sunday'
-        }
-        # Regex for iOS, Android, Samsung chat export
-        self.regex_list = [
-            r'(\d+\-\d+\-\d+, \d+:\d+ [a-zA-Z].[a-zA-Z].*) - (.*?): (.*)',
-            r'(\d+/\d+/\d+, \d+:\d+\d+ [a-zA-Z]*) - (.*?): (.*)',
-            r'(\[\d+/\d+/\d+, \d+:\d+:\d+ [A-Z][A-Z]\]) (.*?): (.*)',
-            r'(\d+/\d+/\d+, \d+:\d+ [a-zA-Z][a-zA-Z]) - (.*?): (.*)'
-        ]
-        # Messages which want to remove from Dataframe
-        self.ignore = [
-            'Missed video call', 'Missed group video call',
-            'Missed voice call', '<Media omitted>',
-            'This message was deleted', 'image omitted',
-            'video omitted', 'You deleted this message',
-            'sticker omitted']
+    url_pattern: str
+    weeks: dict
+    regex_list: list
+    ignore: list 
+
+
+class WhatsAppProcess():
+    """
+    Read and Transform whatsapp messages to analytical format
+    """
+    def __init__(self, app_config: WhatsAppConfig):
+        """
+        Constructor for WhatsAppProcess
+        
+        :param app_config: NamedTuple class with whatsapp configuratin data
+        """
+        self._logger = logging.getLogger(__name__)
+        self.app_config = app_config
         self.emoji_pattern = re.compile("["
             u"\U0001F600-\U0001F64F"  # emoticons
             u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -205,30 +201,24 @@ class WhatsAppProcess:
 
     def apply_regex(self, data: str) -> List:
         """
-        Attributes
-        ----------
-        data (str) : Input data string read from file
+        Read the messages data and apply Regex to List
 
-        Return
-        ------
-        list of data string
+        :returns:
+            list: List of regex applied messages
         """
         matches = []
-        for reg in self.regex_list:
+        for reg in self.app_config.regex_list:
             matches += re.findall(reg, data)
         return matches
 
     def get_dataframe(self, raw_df: pd.DataFrame) -> pd.DataFrame:
         """
-        Formation of Clean DataFrame
+        Read the raw dataframe and trasform it to clean dataframe
 
-        Attributes
-        ----------
-        Dataframe (pandas DF)
+        :param raw_df: Pandas Dataframe as input
 
-        Retrurns
-        --------
-        Dataframe (pandas DF)
+        :returns:
+            messages_df: Transformed Pandas DataFrame as Output
         """
         logging.info("WhatsApp/get_dataframe()")
         # FORMATION OF NEW DF for Analysis
@@ -237,7 +227,7 @@ class WhatsAppProcess:
         data_frame = raw_df.assign(
             emojis=raw_df["message"].apply(extract_emojis))
         data_frame['urlcount'] = data_frame.message.apply(
-            lambda x: re.findall(self.url_pattern, x)).str.len()
+            lambda x: re.findall(self.app_config.url_pattern, x)).str.len()
         data_frame['urlcount'].groupby(by=data_frame['name']).sum()
         media_messages_df = data_frame[
             data_frame['message'].str.contains("omitted")]
@@ -246,21 +236,18 @@ class WhatsAppProcess:
             lambda s: len(s))
         messages_df['word_count'] = messages_df['message'].str.len()
         messages_df["message_count"] = 1
+        self._logger.info("Extractig Raw Dataframe")
         return messages_df
 
     def day_analysis(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         """
         Exploratory Data Analysis on Dataframe
 
-        Attributes
-        ----------
-        Dataframe (pandas DF)
+        :param data_frame: Pandas Dataframe as input
 
-        Retrurns
-        --------
-        Dataframe (pandas DF)
+        :returns:
+            data_frame: Transformed Pandas DataFrame as Output
         """
-        logging.info("WhatsApp/day_analysis()")
         # lst = data_frame.name.unique()
         # for i in range(len(lst)):
         #     # Filtering out messages of particular user
@@ -269,7 +256,7 @@ class WhatsAppProcess:
         #     # print(f'{lst[i]} ->  {req_df.shape[0]}')
         data_frame.groupby('name')['message'].count()\
             .sort_values(ascending=False).index
-        data_frame['day'] = data_frame.datetime.dt.weekday.map(self.weeks)
+        data_frame['day'] = data_frame.datetime.dt.weekday.map(self.app_config.weeks)
         # Rearranging the columns for better understanding
         data_frame = data_frame[[
             'datetime', 'day', 'name', 'message',
@@ -289,18 +276,14 @@ class WhatsAppProcess:
         """
         Word Cloud DataFrame Formation
 
-        Attributes
-        ----------
-        Dataframe (pandas DF)
+        :param raw_df: Pandas Dataframe as input
 
-        Retrurns
-        --------
-        Dataframe (pandas DF)
+        :returns:
+            modified_df: Transformed Pandas DataFrame as Output
         """
-        logging.info("WhatsApp/cloud_data()")
         sep = '|'
         cloud_df = raw_df[(raw_df["message"].str.contains(
-            sep.join(self.ignore)) == False)]
+            sep.join(self.app_config.ignore)) == False)]
         modified_df = cloud_df.copy()
         modified_df.message = cloud_df.loc[:, 'message'].apply(
             lambda s: s.lower())\
@@ -309,4 +292,5 @@ class WhatsAppProcess:
             .str.replace(' {2,}', ' ', regex=True)\
             .str.strip().replace(r'http\S+', '', regex=True)\
             .replace(r'www\S+', '', regex=True)
-        return  modified_df
+        self._logger.info("Extracting information for Cloud Words")
+        return modified_df

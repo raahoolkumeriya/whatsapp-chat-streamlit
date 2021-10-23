@@ -1,17 +1,24 @@
 
 import unittest
+import yaml
 from processor.transformers.chat_eda import WhatsAppProcess, process_data,\
-    statistics, extract_emojis, sorted_authors_df
+    statistics, extract_emojis, sorted_authors_df, WhatsAppConfig
 
 
 class TestWhatsAppProcess(unittest.TestCase):
     def setUp(self):
         with open('configs/demo_chat.txt', 'r') as read_file:
             self.data = read_file.read()
-        self.whatsapp = WhatsAppProcess()
-        self.message = self.whatsapp.apply_regex(self.data)
+        # Parsing YAML file
+        config = 'configs/app_configuration.yml'
+        config = yaml.safe_load(open(config))
+        # configure logging
+        # reading source configuration
+        whatsapp_config = WhatsAppConfig(**config['whatsapp'])
+        whatsapp = WhatsAppProcess(whatsapp_config)
+        self.message = whatsapp.apply_regex(self.data)
         self.raw_df = process_data(self.message)
-        self.data_frame = self.whatsapp.get_dataframe(self.raw_df)
+        self.data_frame = whatsapp.get_dataframe(self.raw_df)
         self.stats = statistics(self.raw_df, self.data_frame)
 
     def test_regex_on_loaded_chat(self):

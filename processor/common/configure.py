@@ -1,4 +1,4 @@
-"""Hold COnfiguration details for Application"""
+"""Hold Streamlit Configuration details for Application"""
 
 # Banner Display on backend terminal
 BANNER = """

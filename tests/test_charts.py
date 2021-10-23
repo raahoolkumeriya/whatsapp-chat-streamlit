@@ -1,5 +1,6 @@
 
 import unittest
+import yaml
 from processor.transformers.chat_eda import WhatsAppProcess, process_data
 from unittest import mock
 
@@ -8,7 +9,12 @@ class TestCharts(unittest.TestCase):
     def setUp(self):
         with open('configs/demo_chat.txt', 'r') as read_file:
             self.data = read_file.read()
-        self.whatsapp = WhatsAppProcess()
+        # Parsing YAML file
+        config = 'configs/app_configuration.yml'
+        config = yaml.safe_load(open(config))
+        # configure logging
+        whatsapp_config = config['whatsapp']
+        self.whatsapp = WhatsAppProcess(whatsapp_config)
         self.message = self.whatsapp.apply_regex(self.data)
         self.raw_df = process_data(self.message)
         self.data_frame = self.whatsapp.get_dataframe(self.raw_df)

@@ -14,7 +14,7 @@ from numpy import sum as npsum
 import matplotlib.pyplot as plt
 from wordcloud import WordCloud, STOPWORDS
 from processor.transformers.chat_eda import WhatsAppProcess, sorted_authors_df,\
-    statistics, process_data
+    statistics, process_data, WhatsAppConfig
 from processor.graphs.charts import pie_display_emojis, time_series_plot,\
     message_cluster, most_active_member, most_active_day,\
     max_words_used, top_media_contributor, who_shared_links,\
@@ -269,11 +269,13 @@ def chart_display(data_frame):
     st.plotly_chart(pie_display)
 
 
-def file_process(data):
+def file_process(data, config):
     """
     Regex passed message format frocessing function
     """
-    whatsapp = WhatsAppProcess()
+    # reading source configuration
+    source_config = WhatsAppConfig(**config['whatsapp'])
+    whatsapp = WhatsAppProcess(source_config)
     message = whatsapp.apply_regex(data)
     raw_df = process_data(message)
     data_frame = whatsapp.get_dataframe(raw_df)
@@ -366,13 +368,13 @@ def main():
     Pandas Dataframe items
     """
     # Parsing YAML file
-    config = 'configs/chat_logging.yml'
+    config = 'configs/app_configuration.yml'
     config = yaml.safe_load(open(config))
     # configure logging
     log_config = config['logging']
     logging.config.dictConfig(log_config)
     logger = logging.getLogger(__name__)
-    logger.info("Welcome to WhatsApp Chat Processor")    
+    logger.info("Welcome to WhatsApp Chat Processor")
 
     c1, c2 = st.columns([3, 1])
     # Uploaded file processing function
@@ -385,13 +387,13 @@ def main():
         # Convert txt string to utf-8 Encoding
         data = uploaded_file.getvalue().decode("utf-8")
         # Compatible iOS and Android regex search
-        file_process(data)
+        file_process(data, config)
 
     # Static File processin For DEMO purpose
     if c2.button("Try Demo 💀🛻 MAD MAX: Fury Road Movie dialogues."):
         with open('configs/demo_chat.txt', 'r') as read_file:
             data = read_file.read()
-        file_process(data)
+        file_process(data, config)
         
 
 if __name__ == "__main__":

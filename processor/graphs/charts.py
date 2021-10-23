@@ -12,7 +12,7 @@ from textblob import TextBlob
 import matplotlib.pyplot as plt
 
 
-def message_cluster(data_frame: pd.DataFrame) -> pd.DataFrame:
+def message_cluster(data_frame: pd.DataFrame):
     """
     Display Message Cluster base on the message statistics
 
@@ -44,7 +44,7 @@ def message_cluster(data_frame: pd.DataFrame) -> pd.DataFrame:
     return fig
 
 
-def pie_display_emojis(data_frame: pd.DataFrame) -> pd.DataFrame:
+def pie_display_emojis(data_frame: pd.DataFrame):
     """
     Pie chart formation for Emoji's Distrubution
 
@@ -70,7 +70,7 @@ def pie_display_emojis(data_frame: pd.DataFrame) -> pd.DataFrame:
     return fig
 
 
-def time_series_plot(data_frame: pd.DataFrame) -> pd.DataFrame:
+def time_series_plot(data_frame: pd.DataFrame):
     """
     Time analysis w.r.t to message in chat
 
@@ -96,7 +96,7 @@ def time_series_plot(data_frame: pd.DataFrame) -> pd.DataFrame:
     return fig
 
 
-def plot_data(data_string) -> pd.DataFrame:
+def plot_data(data_string):
     """
     Common Bar chat Function for plotting data
 
@@ -151,7 +151,7 @@ def plot_data(data_string) -> pd.DataFrame:
     return fig
 
 
-def max_words_used(data_frame: pd.DataFrame) -> pd.DataFrame:
+def max_words_used(data_frame: pd.DataFrame):
     """
     Maximum words used in sentence in group chat
 
@@ -173,7 +173,7 @@ def max_words_used(data_frame: pd.DataFrame) -> pd.DataFrame:
     # # np.sum(data_frame['words'])
     max_words = data_frame[['name', 'word_count']].groupby('name').sum()
     m_w = max_words.sort_values('word_count', ascending=False).head(10)
-    plot_data({
+    return plot_data({
             'x_value': m_w.size,
             'y_value': m_w.word_count,
             'tick_label': m_w.index,
@@ -184,7 +184,7 @@ def max_words_used(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def most_active_member(data_frame: pd.DataFrame) -> pd.DataFrame:
+def most_active_member(data_frame: pd.DataFrame):
     """
     Most active memeber as per number of messages in group
 
@@ -201,7 +201,7 @@ def most_active_member(data_frame: pd.DataFrame) -> pd.DataFrame:
     mostly_active = data_frame['name'].value_counts()
     # Top 10 peoples that are mostly active in our Group
     m_a = mostly_active.head(10)
-    plot_data({
+    return plot_data({
             'x_value': m_a.size,
             'y_value': m_a,
             'tick_label': m_a.index,
@@ -211,7 +211,7 @@ def most_active_member(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def most_active_day(data_frame: pd.DataFrame) -> pd.DataFrame:
+def most_active_day(data_frame: pd.DataFrame):
     """
     Most active day in Group as per messages numbers
 
@@ -226,7 +226,7 @@ def most_active_day(data_frame: pd.DataFrame) -> pd.DataFrame:
     logging.info("WhatsApp/most_active_day()")
     active_day = data_frame['day'].value_counts()
     a_d = active_day.head(10)
-    plot_data({
+    return plot_data({
             'x_value': a_d.size,
             'y_value': a_d,
             'tick_label': a_d.index,
@@ -236,7 +236,7 @@ def most_active_day(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def top_media_contributor(data_frame: pd.DataFrame) -> pd.DataFrame:
+def top_media_contributor(data_frame: pd.DataFrame):
     """
     Top 10 members who shared media's in group
 
@@ -253,7 +253,7 @@ def top_media_contributor(data_frame: pd.DataFrame) -> pd.DataFrame:
     max_media = data_frame[['name', 'media']].groupby('name').sum()
     m_m = max_media.sort_values(
         'media', ascending=False).head(10)
-    plot_data({
+    return plot_data({
             'x_value': m_m.size,
             'y_value': m_m.media,
             'tick_label': m_m.index,
@@ -263,7 +263,7 @@ def top_media_contributor(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def who_shared_links(data_frame: pd.DataFrame) -> pd.DataFrame:
+def who_shared_links(data_frame: pd.DataFrame):
     """
     Top 10 members Who shared maximum links in Group
 
@@ -279,7 +279,7 @@ def who_shared_links(data_frame: pd.DataFrame) -> pd.DataFrame:
     # Member who has shared max numbers of link in Group
     max_words = data_frame[['name', 'urlcount']].groupby('name').sum()
     m_w = max_words.sort_values('urlcount', ascending=False).head(10)
-    plot_data({
+    return plot_data({
             'x_value': m_w.size,
             'y_value': m_w.urlcount,
             'tick_label': m_w.index,
@@ -290,7 +290,7 @@ def who_shared_links(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def time_when_group_active(data_frame: pd.DataFrame) -> pd.DataFrame:
+def time_when_group_active(data_frame: pd.DataFrame):
     """
     Most Messages Analsyis w.r.t to Time
 
@@ -305,7 +305,7 @@ def time_when_group_active(data_frame: pd.DataFrame) -> pd.DataFrame:
     logging.info("WhatsApp/time_when_group_active()")
     # Time whenever the group was highly active
     active_time = data_frame.datetime.dt.time.value_counts().head(10)
-    plot_data({
+    return plot_data({
             'x_value': active_time.size,
             'y_value': active_time.values,
             'tick_label': active_time.index,
@@ -315,7 +315,7 @@ def time_when_group_active(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def most_suitable_hour(data_frame: pd.DataFrame) -> pd.DataFrame:
+def most_suitable_hour(data_frame: pd.DataFrame):
     """
     Most Messages Analsyis w.r.t to Hour
 
@@ -330,7 +330,7 @@ def most_suitable_hour(data_frame: pd.DataFrame) -> pd.DataFrame:
     logging.info("WhatsApp/most_suitable_hour()")
     # Time whenever the group was highly active
     active_hour = data_frame.datetime.dt.hour.value_counts().head(20)
-    plot_data({
+    return plot_data({
             'x_value': active_hour.size,
             'y_value': active_hour.values,
             'tick_label': active_hour.index,
@@ -340,7 +340,7 @@ def most_suitable_hour(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def most_suitable_day(data_frame: pd.DataFrame) -> pd.DataFrame:
+def most_suitable_day(data_frame: pd.DataFrame):
     """
     Most Messages Analsyis w.r.t to Day
 
@@ -355,7 +355,7 @@ def most_suitable_day(data_frame: pd.DataFrame) -> pd.DataFrame:
     logging.info("WhatsApp/most_suitable_day()")
     # Time whenever the group was highly active
     active_day = data_frame.datetime.dt.day.value_counts().head(20)
-    plot_data({
+    return plot_data({
             'x_value': active_day.size,
             'y_value':  active_day.values,
             'tick_label': active_day.index,
@@ -365,7 +365,7 @@ def most_suitable_day(data_frame: pd.DataFrame) -> pd.DataFrame:
         })
 
 
-def sentiment_analysis(cloud_df: pd.DataFrame) -> pd.DataFrame:
+def sentiment_analysis(cloud_df: pd.DataFrame):
     """
     Sentiment analysis score
 
@@ -381,7 +381,7 @@ def sentiment_analysis(cloud_df: pd.DataFrame) -> pd.DataFrame:
         lambda text: TextBlob(text).sentiment.polarity)
     sentiment = cloud_df[['name', 'sentiment']].groupby('name').mean()
     s_a = sentiment.sort_values('sentiment', ascending=False).head(10)
-    plot_data({
+    return plot_data({
             'x_value': s_a.size,
             'y_value': s_a.sentiment,
             'tick_label': s_a.index,
