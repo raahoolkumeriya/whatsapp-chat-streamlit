@@ -21,7 +21,7 @@ Welcome to
                 |_|   |_|  \\___/ \\___\\___||___/___/\\___/|_|
 
     A Data Science Project for Fun :-)
-    build: Version 2.0.1
+    build: Version 2.1.1
     """
 
 TITLE = "WhatsApp Chat Processor"
