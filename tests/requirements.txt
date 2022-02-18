@@ -1,11 +1,12 @@
-streamlit==0.88.0
+streamlit==1.1.0
 wordcloud==1.8.1
 pandas==1.2.3
 numpy==1.18.5
 matplotlib==3.3.4
-emoji==1.2.0
-plotly==5.0.0
+emoji==1.6.3
+plotly==5.6.0
+textblob==0.17.1
 pytest>=5.4
 seleniumbase>=1.63
 opencv-python>=4.3
-textblob==0.15.3
+pyyaml==6.0
