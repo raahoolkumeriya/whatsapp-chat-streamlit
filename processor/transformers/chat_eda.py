@@ -173,7 +173,7 @@ class WhatsAppProcess():
     """
     Read and Transform whatsapp messages to analytical format
     """
-    def __init__(self, app_config: WhatsAppConfig):
+    def __init__(self, app_config):
         """
         Constructor for WhatsAppProcess
         
