@@ -207,7 +207,7 @@ class WhatsAppProcess():
             list: List of regex applied messages
         """
         matches = []
-        for reg in self.app_config.regex_list:
+        for reg in self.app_config.get('regex_list'):
             matches += re.findall(reg, data)
         return matches
 
@@ -227,7 +227,7 @@ class WhatsAppProcess():
         data_frame = raw_df.assign(
             emojis=raw_df["message"].apply(extract_emojis))
         data_frame['urlcount'] = data_frame.message.apply(
-            lambda x: re.findall(self.app_config.url_pattern, x)).str.len()
+            lambda x: re.findall(self.app_config.get('url_pattern'), x)).str.len()
         data_frame['urlcount'].groupby(by=data_frame['name']).sum()
         media_messages_df = data_frame[
             data_frame['message'].str.contains("omitted")]
@@ -256,7 +256,7 @@ class WhatsAppProcess():
         #     # print(f'{lst[i]} ->  {req_df.shape[0]}')
         data_frame.groupby('name')['message'].count()\
             .sort_values(ascending=False).index
-        data_frame['day'] = data_frame.datetime.dt.weekday.map(self.app_config.weeks)
+        data_frame['day'] = data_frame.datetime.dt.weekday.map(self.app_config.get('weeks'))
         # Rearranging the columns for better understanding
         data_frame = data_frame[[
             'datetime', 'day', 'name', 'message',
