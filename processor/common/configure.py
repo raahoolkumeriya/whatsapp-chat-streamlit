@@ -59,7 +59,7 @@ MAIN_STYLE = """ <style>
 
 # Application Features text for display on Sidebar
 APPLICATION_FEATURE = '''
-** Application Feature: **
+**Application Feature:**
 - Multilingual Support
 - Individual Messenger Statistics
 - Activity Cluster
