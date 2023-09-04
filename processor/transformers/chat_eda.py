@@ -124,7 +124,7 @@ def process_data(messages: str) -> pd.DataFrame:
         raw_df['datetime'] = raw_df['datetime'].str.replace(
             r'[a].[m].', 'AM', regex=True)
         raw_df['datetime'] = pd.to_datetime(
-            raw_df['datetime'], format="%Y-%m-%d, %I:%M %p")
+            raw_df['datetime'], format="[%d/%m/%y, %I:%M:%S %p]")
     except Exception as diag:
         # IOS Export time format
         print(diag)
