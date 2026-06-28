@@ -23,7 +23,7 @@ from processor.common.configure import BANNER, TITLE, REPO_URL, FORMAT_BUTTON,\
     HIDE_STREAMLIT_STYLE, MAIN_STYLE, APPLICATION_FEATURE
 
 
-st.set_option('deprecation.showPyplotGlobalUse', False)
+
 
 warnings.filterwarnings(
     "ignore", message="Glyph 128584 missing from current font.")
@@ -145,11 +145,11 @@ def generate_word_cloud(text: str, title: str) -> Any:
         background_color="white").generate(text)
     # Display the generated image:
     # the matplotlib way:
-    plt.figure(figsize=(10, 8))
-    plt.imshow(wordcloud, interpolation='bilinear')
-    plt.axis("off")
-    plt.title(title)
-    st.pyplot()
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis("off")
+    ax.set_title(title)
+    st.pyplot(fig)
 
 
 def next_page():

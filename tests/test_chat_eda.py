@@ -15,10 +15,10 @@ class TestWhatsAppProcess(unittest.TestCase):
         # configure logging
         # reading source configuration
         whatsapp_config = WhatsAppConfig(**config['whatsapp'])
-        whatsapp = WhatsAppProcess(whatsapp_config)
-        self.message = whatsapp.apply_regex(self.data)
+        self.whatsapp = WhatsAppProcess(whatsapp_config)
+        self.message = self.whatsapp.apply_regex(self.data)
         self.raw_df = process_data(self.message)
-        self.data_frame = whatsapp.get_dataframe(self.raw_df)
+        self.data_frame = self.whatsapp.get_dataframe(self.raw_df)
         self.stats = statistics(self.raw_df, self.data_frame)
 
     def test_regex_on_loaded_chat(self):

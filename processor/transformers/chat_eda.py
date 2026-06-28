@@ -81,7 +81,7 @@ def extract_emojis(string: str) -> str:
     --------
     str: Emoji's extracted from message
     """
-    return ''.join(c for c in string if c in emoji.UNICODE_EMOJI['en'])
+    return ''.join(item['emoji'] for item in emoji.emoji_list(string))
 
 
 def give_emoji_free_text(text: str) -> str:
@@ -96,19 +96,16 @@ def give_emoji_free_text(text: str) -> str:
     --------
     str: Emoji's extracted from message
     """
-    allchars = [str for str in text]
-    emoji_list = [c for c in allchars if c in emoji.UNICODE_EMOJI]
-    clean_text = ' '.join([str for str in text.split() if not any(i in str for i in emoji_list)])
-    return clean_text
+    return emoji.replace_emoji(text, replace='')
 
 
-def process_data(messages: str) -> pd.DataFrame:
+def process_data(messages: list) -> pd.DataFrame:
     """
-    Converting string messages into DataFrame
+    Converting parsed messages into DataFrame
 
     Attributes
     ----------
-    message (str): String of text
+    messages (list): List of tuples (datetime, name, message)
 
     Retrurns
     --------
@@ -117,37 +114,54 @@ def process_data(messages: str) -> pd.DataFrame:
     logging.info("WhatsApp/process_data()")
     raw_df = pd.DataFrame(
         messages, columns=['datetime', 'name', 'message'])
-    # SAMSUNG Export time format
+    
+    if raw_df.empty:
+        raise EmptyDataError("No WhatsApp chat data parsed. Check format.")
+
+    # Clean brackets and normalize a.m./p.m./am/pm to AM/PM
+    raw_df['datetime'] = raw_df['datetime'].astype(str)
+    raw_df['datetime'] = raw_df['datetime'].str.replace('[', '', regex=False)
+    raw_df['datetime'] = raw_df['datetime'].str.replace(']', '', regex=False)
+    raw_df['datetime'] = raw_df['datetime'].str.replace(r'(?i)[a]\.?[m]\.?', 'AM', regex=True)
+    raw_df['datetime'] = raw_df['datetime'].str.replace(r'(?i)[p]\.?[m]\.?', 'PM', regex=True)
+    raw_df['datetime'] = raw_df['datetime'].str.strip()
+
+    # Try parsing with format='mixed' first
     try:
-        raw_df['datetime'] = raw_df['datetime'].str.replace(
-            r'[p].[m].', 'PM', regex=True)
-        raw_df['datetime'] = raw_df['datetime'].str.replace(
-            r'[a].[m].', 'AM', regex=True)
-        raw_df['datetime'] = pd.to_datetime(
-            raw_df['datetime'], format="[%d/%m/%y, %I:%M:%S %p]")
-    except Exception as diag:
-        # IOS Export time format
-        print(diag)
-        try:
-            # Drop date enclosures from date column
-            raw_df['datetime'] = raw_df['datetime'].map(
-                lambda x: x.lstrip('[').rstrip(']'))
-            raw_df['datetime'] = pd.to_datetime(
-                raw_df['datetime'], format="%d/%m/%y, %I:%M:%S %p")
-        except Exception as diag:
-            print(diag)
-            # OppO Export time format
+        raw_df['datetime'] = pd.to_datetime(raw_df['datetime'], format='mixed')
+    except Exception:
+        # Fallback to try individual formats
+        parsed = None
+        formats = [
+            "%d/%m/%y, %I:%M:%S %p",
+            "%d/%m/%Y, %I:%M:%S %p",
+            "%d/%m/%y, %H:%M:%S",
+            "%d/%m/%Y, %H:%M:%S",
+            "%d/%m/%y, %I:%M %p",
+            "%d/%m/%Y, %I:%M %p",
+            "%d/%m/%y, %H:%M",
+            "%d/%m/%Y, %H:%M",
+            "%m/%d/%y, %I:%M:%S %p",
+            "%m/%d/%Y, %I:%M:%S %p",
+            "%m/%d/%y, %I:%M %p",
+            "%m/%d/%Y, %I:%M %p",
+            "%Y-%m-%d, %H:%M:%S",
+            "%Y-%m-%d, %H:%M",
+            "%d.%m.%y, %H:%M:%S",
+            "%d.%m.%Y, %H:%M:%S",
+            "%d.%m.%y, %H:%M",
+            "%d.%m.%Y, %H:%M",
+        ]
+        for fmt in formats:
             try:
-                raw_df['datetime'] = pd.to_datetime(
-                    raw_df['datetime'], format="%d/%m/%Y, %I:%M %p")
-            except Exception as diag:
-                print(diag)
-                # Android Export time format
-                try:
-                    raw_df['datetime'] = pd.to_datetime(
-                        raw_df['datetime'], format="%d/%m/%y, %I:%M %p")
-                except EmptyDataError as diag:
-                    raise diag
+                parsed = pd.to_datetime(raw_df['datetime'], format=fmt)
+                break
+            except Exception:
+                continue
+        if parsed is not None:
+            raw_df['datetime'] = parsed
+        else:
+            raw_df['datetime'] = pd.to_datetime(raw_df['datetime'], errors='coerce')
 
     raw_df['date'] = pd.to_datetime(raw_df['datetime']).dt.date
     raw_df['time'] = pd.to_datetime(raw_df['datetime']).dt.time
@@ -177,10 +191,14 @@ class WhatsAppProcess():
         """
         Constructor for WhatsAppProcess
         
-        :param app_config: NamedTuple class with whatsapp configuratin data
+        :param app_config: NamedTuple class or dict with whatsapp configuratin data
         """
         self._logger = logging.getLogger(__name__)
-        self.app_config = app_config
+        if isinstance(app_config, dict):
+            self.app_config = WhatsAppConfig(**app_config)
+        else:
+            self.app_config = app_config
+        self.ignore = self.app_config.ignore
         self.emoji_pattern = re.compile("["
             u"\U0001F600-\U0001F64F"  # emoticons
             u"\U0001F300-\U0001F5FF"  # symbols & pictographs
@@ -191,7 +209,7 @@ class WhatsAppProcess():
             u"\U0001F600-\U0001F64F"
             u"\U00002702-\U000027B0"
             u"\U000024C2-\U0001F251"
-            u"\U0001f926-\U0001f937"
+            u"\U0001F926-\U0001F937"
             u"\U0001F1F2"
             u"\U0001F1F4"
             u"\U0001F620"
@@ -201,14 +219,73 @@ class WhatsAppProcess():
 
     def apply_regex(self, data: str) -> List:
         """
-        Read the messages data and apply Regex to List
+        Read the messages data and parse them into a list of tuples (datetime, name, message).
+        This parser handles various date formats, iOS/Android styles, and multi-line messages.
 
         :returns:
-            list: List of regex applied messages
+            list: List of parsed messages as tuples
         """
+        # Universal timestamp prefix pattern
+        timestamp_pattern = re.compile(
+            r'^(\[?'
+            r'\d{1,4}[/\-\.]\d{1,4}[/\-\.]\d{1,4}'
+            r'(?:,\s*|\s+)'
+            r'\d{1,2}:\d{2}(?::\d{2})?'
+            r'(?:\s*[aApP]\.?[mM]\.?)?'
+            r'\]?'
+            r')'
+            r'(?:\s+-\s+|\s+)'
+        )
+        
         matches = []
-        for reg in self.app_config.regex_list:
-            matches += re.findall(reg, data)
+        lines = data.split('\n')
+        current_message = None
+        
+        for line in lines:
+            stripped_line = line.rstrip('\r\n')
+            
+            # Check if this line starts a new message
+            match = timestamp_pattern.match(stripped_line.strip())
+            if match:
+                # Save previous message
+                if current_message:
+                    matches.append((
+                        current_message['datetime'],
+                        current_message['name'],
+                        current_message['message']
+                    ))
+                
+                timestamp_str = match.group(1)
+                # The text after timestamp and separator
+                trimmed_line = stripped_line.strip()
+                rest = trimmed_line[match.end():].strip()
+                
+                # Check for author separator: ": "
+                if ': ' in rest:
+                    author, msg = rest.split(': ', 1)
+                    if len(author) <= 60:
+                        current_message = {
+                            'datetime': timestamp_str,
+                            'name': author,
+                            'message': msg
+                        }
+                    else:
+                        current_message = None
+                else:
+                    current_message = None
+            else:
+                # Continuation line
+                if current_message:
+                    current_message['message'] += '\n' + stripped_line
+                    
+        # Append last message
+        if current_message:
+            matches.append((
+                current_message['datetime'],
+                current_message['name'],
+                current_message['message']
+            ))
+            
         return matches
 
     def get_dataframe(self, raw_df: pd.DataFrame) -> pd.DataFrame:
@@ -256,12 +333,11 @@ class WhatsAppProcess():
         #     # print(f'{lst[i]} ->  {req_df.shape[0]}')
         data_frame.groupby('name')['message'].count()\
             .sort_values(ascending=False).index
-        data_frame['day'] = data_frame.datetime.dt.weekday.map(self.app_config.weeks)
+        data_frame['day'] = data_frame.datetime.dt.weekday.map(self.app_config.weeks).astype('category')
         # Rearranging the columns for better understanding
         data_frame = data_frame[[
             'datetime', 'day', 'name', 'message',
-            'date', 'time', 'emojis', 'urlcount']]
-        data_frame['day'] = data_frame['day'].astype('category')
+            'date', 'time', 'emojis', 'urlcount']].copy()
         # lst = data_frame.day.unique()
         # Day wise Message list
         # for i in range(len(lst)):
@@ -287,7 +363,7 @@ class WhatsAppProcess():
         modified_df = cloud_df.copy()
         modified_df.message = cloud_df.loc[:, 'message'].apply(
             lambda s: s.lower())\
-            .apply(lambda s: self.emoji_pattern.sub(r'', s))\
+            .apply(lambda s: emoji.replace_emoji(s, replace=''))\
             .str.replace('\n|\t', '', regex=True)\
             .str.replace(' {2,}', ' ', regex=True)\
             .str.strip().replace(r'http\S+', '', regex=True)\
