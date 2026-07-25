@@ -126,3 +126,20 @@ class TestWhatsAppProcess(unittest.TestCase):
         assert isinstance(pdf_bytes, bytes)
         assert len(pdf_bytes) > 500
         assert pdf_bytes.startswith(b'%PDF')
+
+    def test_duckdb_chat_engine(self):
+        from processor.storage.duckdb_engine import DuckDBChatEngine
+        engine = DuckDBChatEngine(self.data_frame, self.raw_df)
+        stats = engine.get_statistics('MAD MAX Fury Road 🛻')
+        assert stats['total_messages'] == 33
+        assert stats['total_members'] == 9
+        
+        active = engine.get_most_active_members(5)
+        assert len(active) > 0
+        
+        hourly = engine.get_hourly_profile()
+        assert len(hourly) == 24
+        
+        latency = engine.get_reply_latency()
+        assert isinstance(latency, pd.DataFrame)
+        engine.close()

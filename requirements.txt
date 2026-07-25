@@ -8,3 +8,4 @@ plotly>=5.15.0
 textblob>=0.17.0
 pyyaml>=6.0
 reportlab>=4.0.0
+duckdb>=1.0.0

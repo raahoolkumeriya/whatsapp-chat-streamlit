@@ -422,21 +422,71 @@ def plot_top_domains(domain_df: pd.DataFrame) -> plt.Figure:
     return fig
 
 
-def plot_reply_latency(latency_df: pd.DataFrame) -> plt.Figure:
-    """Plot bar chart of average response speed (reply latency in minutes) per member."""
-    if latency_df.empty:
+def plot_reply_latency(latency_df: pd.DataFrame, top_n: int = 30) -> Any:
+    """
+    Plot interactive Plotly horizontal bar chart of average response speed (reply latency in minutes) per member.
+    Supports dynamic scrolling, zooming, hover details, and responsive height scaling for groups with 1000+ members.
+    """
+    if latency_df is None or latency_df.empty:
+        fig = px.bar(title="⏱️ Member Response Speed (No Data Available)")
+        fig.add_annotation(text="Insufficient reply data in chat log", showarrow=False, font=dict(size=14, color="#888888"))
+        return fig
+
+    # Sort fastest responders (smallest reply mins first) and limit to top_n to prevent overcrowding
+    df_sorted = latency_df.sort_values('avg_reply_time_mins', ascending=True).head(top_n).copy()
+    
+    # Calculate dynamic figure height based on number of participants (min 420px, max 1200px)
+    num_members = len(df_sorted)
+    calc_height = max(420, min(num_members * 26 + 100, 1200))
+
+    fig = px.bar(
+        df_sorted,
+        x='avg_reply_time_mins',
+        y='name',
+        orientation='h',
+        title=f"⏱️ Member Response Speed (Top {min(num_members, top_n)} Fastest Responders)",
+        labels={'avg_reply_time_mins': 'Average Reply Speed (Minutes)', 'name': 'Participant Name'},
+        text='avg_reply_time_mins',
+        color='avg_reply_time_mins',
+        color_continuous_scale='teal'
+    )
+    
+    fig.update_traces(
+        texttemplate='%{text:.1f} mins',
+        textposition='outside',
+        hovertemplate='<b>%{y}</b><br/>Average Reply Latency: <b>%{x:.1f} minutes</b><extra></extra>'
+    )
+    
+    fig.update_layout(
+        height=calc_height,
+        margin=dict(l=20, r=40, t=50, b=40),
+        xaxis=dict(showgrid=True, gridcolor='#E5E7EB', title='Average Response Time (Minutes)'),
+        yaxis=dict(autorange='reversed', title=''),
+        coloraxis_showscale=False,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(family="Plus Jakarta Sans, sans-serif")
+    )
+    
+    return fig
+
+
+def plot_reply_latency_matplotlib(latency_df: pd.DataFrame, top_n: int = 10) -> plt.Figure:
+    """Matplotlib static bar chart of average response speed for PDF generation."""
+    if latency_df is None or latency_df.empty:
         fig, ax = plt.subplots(figsize=(8, 4))
         ax.text(0.5, 0.5, "Insufficient Reply Data", ha='center', va='center', fontsize=12, color='#888888')
         ax.axis('off')
         return fig
 
+    df_sub = latency_df.sort_values('avg_reply_time_mins', ascending=True).head(top_n)
     return plot_data({
-        'x_value': latency_df.shape[0],
-        'y_value': latency_df['avg_reply_time_mins'].values,
-        'tick_label': latency_df['name'].values,
+        'x_value': df_sub.shape[0],
+        'y_value': df_sub['avg_reply_time_mins'].values,
+        'tick_label': df_sub['name'].values,
         'x_label': 'Group Participant',
         'y_label': 'Average Reply Speed (Minutes)',
-        'title': '⏱️ Member Response Speed (Fastest Responders)'
+        'title': '⏱️ Member Response Speed (Top Fastest Responders)'
     })
 
 

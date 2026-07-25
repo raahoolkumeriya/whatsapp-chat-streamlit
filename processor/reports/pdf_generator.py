@@ -27,7 +27,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from processor.graphs.charts import (
     most_active_member, most_active_day, most_suitable_day,
     most_suitable_hour, sentiment_analysis, plot_top_domains,
-    plot_reply_latency, plot_hourly_profile, plot_sentiment_distribution,
+    plot_reply_latency_matplotlib, plot_hourly_profile, plot_sentiment_distribution,
     plot_message_length_distribution
 )
 
@@ -333,7 +333,7 @@ def generate_pdf_report(
 
     latency_df = _get_reply_latency_df(data_frame)
     if not latency_df.empty:
-        fig_lat = plot_reply_latency(latency_df)
+        fig_lat = plot_reply_latency_matplotlib(latency_df)
         img_lat = fig_to_rl_image(fig_lat, width=520, height=220)
         if img_lat:
             story.append(img_lat)

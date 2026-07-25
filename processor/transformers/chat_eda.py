@@ -34,51 +34,57 @@ def sorted_authors_df(data_frame: pd.DataFrame):
 
 
 def statistics(raw_df: pd.DataFrame, data_frame: pd.DataFrame) -> Dict[str, Any]:
-    """Calculate summary statistics for chat dataset."""
+    """Calculate summary statistics for chat dataset using DuckDB C++ SQL engine."""
     logger.info("Calculating summary statistics across raw (%d rows) and cleaned (%d rows) DataFrames", len(raw_df), len(data_frame))
-    author_list = get_members(data_frame)
-    media_count = len(raw_df[raw_df.message.str.contains("omitted")])
-    deleted_count = len(raw_df[raw_df['message'] == "This message was deleted"])
-    your_deleted_count = len(raw_df[raw_df['message'] == "You deleted this message"])
     group_name = raw_df.iloc[0:1]['name'][0] if not raw_df.empty else "Group"
-    link_count = data_frame['urlcount'].sum() if 'urlcount' in data_frame.columns else 0
-    total_emojis = sum(len(em) for em in data_frame['emojis']) if 'emojis' in data_frame.columns else 0
+    
+    try:
+        from processor.storage.duckdb_engine import DuckDBChatEngine
+        engine = DuckDBChatEngine(data_frame, raw_df)
+        stats = engine.get_statistics(group_name=group_name)
+        total_emojis = sum(len(em) for em in data_frame['emojis']) if 'emojis' in data_frame.columns else 0
+        stats['total_emojis'] = total_emojis
+        engine.close()
+        return stats
+    except Exception as e:
+        logger.warning("DuckDB statistics fallback to Pandas: %s", e)
+        author_list = get_members(data_frame)
+        media_count = len(raw_df[raw_df.message.str.contains("omitted")])
+        deleted_count = len(raw_df[raw_df['message'] == "This message was deleted"])
+        your_deleted_count = len(raw_df[raw_df['message'] == "You deleted this message"])
+        link_count = data_frame['urlcount'].sum() if 'urlcount' in data_frame.columns else 0
+        total_emojis = sum(len(em) for em in data_frame['emojis']) if 'emojis' in data_frame.columns else 0
+        unique_dates = data_frame['datetime'].dt.date.nunique() if ('datetime' in data_frame.columns and not data_frame.empty) else 1
+        avg_msgs_per_day = round(data_frame.shape[0] / max(unique_dates, 1), 1)
 
-    # Calculate active days & average messages per day
-    unique_dates = data_frame['datetime'].dt.date.nunique() if ('datetime' in data_frame.columns and not data_frame.empty) else 1
-    avg_msgs_per_day = round(data_frame.shape[0] / max(unique_dates, 1), 1)
+        peak_day = "N/A"
+        if 'day' in data_frame.columns and not data_frame['day'].dropna().empty:
+            peak_day = str(data_frame['day'].value_counts().index[0])
 
-    # Calculate peak day of week
-    peak_day = "N/A"
-    if 'day' in data_frame.columns and not data_frame['day'].dropna().empty:
-        peak_day = str(data_frame['day'].value_counts().index[0])
+        busiest_hour = "N/A"
+        if 'datetime' in data_frame.columns and not data_frame.empty:
+            top_h = data_frame['datetime'].dt.hour.value_counts().index[0]
+            ampm = "AM" if top_h < 12 else "PM"
+            display_h = top_h if top_h <= 12 else top_h - 12
+            if display_h == 0: display_h = 12
+            busiest_hour = f"{display_h} {ampm}"
 
-    # Calculate busiest hour
-    busiest_hour = "N/A"
-    if 'datetime' in data_frame.columns and not data_frame.empty:
-        top_h = data_frame['datetime'].dt.hour.value_counts().index[0]
-        ampm = "AM" if top_h < 12 else "PM"
-        display_h = top_h if top_h <= 12 else top_h - 12
-        if display_h == 0:
-            display_h = 12
-        busiest_hour = f"{display_h} {ampm}"
-
-    stats = {
-        "media_message": media_count,
-        "total_deleted_messages": deleted_count,
-        "your_deleted_message": your_deleted_count,
-        "group_name": group_name,
-        "total_messages": data_frame.shape[0],
-        'total_members': len(author_list),
-        'link_shared': link_count,
-        'total_emojis': total_emojis,
-        'avg_msgs_per_day': avg_msgs_per_day,
-        'peak_day': peak_day,
-        'busiest_hour': busiest_hour
-    }
-    logger.info("Summary stats calculated: Group='%s', Messages=%d, Members=%d, Media=%d, Links=%d, PeakDay=%s, PeakHour=%s",
-                group_name, data_frame.shape[0], len(author_list), media_count, link_count, peak_day, busiest_hour)
-    return stats
+        stats = {
+            "media_message": media_count,
+            "total_deleted_messages": deleted_count,
+            "your_deleted_message": your_deleted_count,
+            "group_name": group_name,
+            "total_messages": data_frame.shape[0],
+            'total_members': len(author_list),
+            'link_shared': link_count,
+            'total_emojis': total_emojis,
+            'avg_msgs_per_day': avg_msgs_per_day,
+            'peak_day': peak_day,
+            'busiest_hour': busiest_hour
+        }
+        logger.info("Summary stats calculated: Group='%s', Messages=%d, Members=%d, Media=%d, Links=%d",
+                    group_name, data_frame.shape[0], len(author_list), media_count, link_count)
+        return stats
 
 
 def process_data(messages: list) -> pd.DataFrame:

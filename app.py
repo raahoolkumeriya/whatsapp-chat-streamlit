@@ -592,13 +592,27 @@ def render_visual_kpi_cards(stats: Dict[str, Any], data_frame: pd.DataFrame):
     """, unsafe_allow_html=True)
 
 
-def render_member_visual_cards(user_cloud_df: pd.DataFrame, user_data_df: pd.DataFrame):
+@st.cache_data(show_spinner="Rendering Member WordCloud...", max_entries=50)
+def get_cached_member_wordcloud(user_text: str, author_name: str) -> Image.Image:
+    """Cache individual member WordCloud image to make dropdown switching instant."""
+    return get_wordcloud_pil_image(user_text)
+
+
+def render_member_visual_cards(user_cloud_df: pd.DataFrame, user_data_df: pd.DataFrame, duckdb_engine=None, selected_author: str = ""):
     """Render Linear/Stripe-inspired floating accent metric cards for individual member analytics."""
-    msgs = user_cloud_df.shape[0]
-    emojis_cnt = sum(len(em) for em in user_data_df['emojis']) if 'emojis' in user_data_df.columns else 0
-    links_cnt = int(user_data_df['urlcount'].sum()) if 'urlcount' in user_data_df.columns else 0
-    words_cnt = int(user_data_df['word_count'].sum()) if 'word_count' in user_data_df.columns else 0
-    avg_words = round(user_data_df['word_count'].mean(), 2) if ('word_count' in user_data_df.columns and not user_data_df.empty) else 0
+    if duckdb_engine is not None and selected_author:
+        m = duckdb_engine.get_member_metrics(selected_author)
+        msgs = m["msgs"]
+        links_cnt = m["links_cnt"]
+        words_cnt = m["words_cnt"]
+        avg_words = m["avg_words"]
+        emojis_cnt = sum(len(em) for em in user_data_df['emojis']) if 'emojis' in user_data_df.columns else 0
+    else:
+        msgs = user_cloud_df.shape[0]
+        emojis_cnt = sum(len(em) for em in user_data_df['emojis']) if 'emojis' in user_data_df.columns else 0
+        links_cnt = int(user_data_df['urlcount'].sum()) if 'urlcount' in user_data_df.columns else 0
+        words_cnt = int(user_data_df['word_count'].sum()) if 'word_count' in user_data_df.columns else 0
+        avg_words = round(user_data_df['word_count'].mean(), 2) if ('word_count' in user_data_df.columns and not user_data_df.empty) else 0
 
     st.markdown(f"""
     <div class="stat-card-grid">
@@ -670,9 +684,9 @@ def main():
     # Anthropic Hero Header Card
     st.markdown(f"""
     <div class="hero-header">
-        <span class="anthropic-tag">⚡️ WHATSAPP ANALYTICS ENGINE</span>
+        <span class="anthropic-tag">🦆 DUCKDB IN-MEMORY VECTORIZED ENGINE &bull; ⚡️ HIGH-SPEED ANALYTICS</span>
         <div class="hero-title">{TITLE}</div>
-        <div class="hero-subtitle">Discover interaction dynamics, member contributions, multilingual word clouds, and sentiment insights from exported WhatsApp group chats.</div>
+        <div class="hero-subtitle">Discover interaction dynamics, member contributions, multilingual word clouds, and sentiment insights powered by high-speed DuckDB SQL execution.</div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -794,6 +808,9 @@ def render_dashboard(raw_df: pd.DataFrame, data_frame: pd.DataFrame, cloud_df: p
 
     analyzer = WhatsAppAnalyzer(WhatsAppConfig(**load_config()['whatsapp']))
 
+    from processor.storage.duckdb_engine import DuckDBChatEngine
+    duckdb_engine = DuckDBChatEngine(data_frame, raw_df)
+
     # TAB 1: OVERVIEW
     with tab_overview:
         st.subheader("📋 Parsed Chat Message Explorer")
@@ -850,13 +867,21 @@ def render_dashboard(raw_df: pd.DataFrame, data_frame: pd.DataFrame, cloud_df: p
             user_cloud_df = cloud_df[cloud_df['name'] == selected_author]
             user_data_df = data_frame[data_frame.name == selected_author]
             
-            # Individual Member Visual Metric Cards
-            render_member_visual_cards(user_cloud_df, user_data_df)
+            # Individual Member Visual Metric Cards (DuckDB Accelerated)
+            render_member_visual_cards(user_cloud_df, user_data_df, duckdb_engine, selected_author)
 
             st.write("")
             user_text = " ".join(str(msg) for msg in user_cloud_df.message if isinstance(msg, str))
-            fig_user_cloud = generate_word_cloud_figure(user_text, f"Word Cloud - {selected_author}")
-            st.pyplot(fig_user_cloud, use_container_width=True)
+            
+            # Cached Member WordCloud Image
+            pil_wc = get_cached_member_wordcloud(user_text, selected_author)
+            fig_uc, ax_uc = plt.subplots(figsize=(10, 5))
+            ax_uc.imshow(pil_wc, interpolation='bilinear')
+            ax_uc.axis("off")
+            ax_uc.set_title(f"Word Cloud - {selected_author}", pad=12, fontsize=14, fontweight='bold')
+            fig_uc.tight_layout()
+            st.pyplot(fig_uc, use_container_width=True)
+            plt.close(fig_uc)
 
         st.markdown("---")
         col_m1, col_m2 = st.columns(2)
@@ -878,9 +903,9 @@ def render_dashboard(raw_df: pd.DataFrame, data_frame: pd.DataFrame, cloud_df: p
 
         st.markdown("---")
         st.subheader("⏱️ Member Response Speed (Fastest Responders)")
-        st.info("Measures the average reply latency (in minutes) when answering another participant's message.")
+        st.info("Measures average reply latency (in minutes). Dynamic interactive Plotly chart with zoom, hover details, and responsive scaling for groups with 1000+ members.")
         latency_df = analyzer.calculate_reply_latency(data_frame)
-        st.pyplot(plot_reply_latency(latency_df), use_container_width=True)
+        st.plotly_chart(plot_reply_latency(latency_df), use_container_width=True)
 
     # TAB 3: ACTIVITY PATTERNS
     with tab_time:
