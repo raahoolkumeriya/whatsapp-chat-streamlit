@@ -42,6 +42,26 @@ def statistics(raw_df: pd.DataFrame, data_frame: pd.DataFrame) -> Dict[str, Any]
     your_deleted_count = len(raw_df[raw_df['message'] == "You deleted this message"])
     group_name = raw_df.iloc[0:1]['name'][0] if not raw_df.empty else "Group"
     link_count = data_frame['urlcount'].sum() if 'urlcount' in data_frame.columns else 0
+    total_emojis = sum(len(em) for em in data_frame['emojis']) if 'emojis' in data_frame.columns else 0
+
+    # Calculate active days & average messages per day
+    unique_dates = data_frame['datetime'].dt.date.nunique() if ('datetime' in data_frame.columns and not data_frame.empty) else 1
+    avg_msgs_per_day = round(data_frame.shape[0] / max(unique_dates, 1), 1)
+
+    # Calculate peak day of week
+    peak_day = "N/A"
+    if 'day' in data_frame.columns and not data_frame['day'].dropna().empty:
+        peak_day = str(data_frame['day'].value_counts().index[0])
+
+    # Calculate busiest hour
+    busiest_hour = "N/A"
+    if 'datetime' in data_frame.columns and not data_frame.empty:
+        top_h = data_frame['datetime'].dt.hour.value_counts().index[0]
+        ampm = "AM" if top_h < 12 else "PM"
+        display_h = top_h if top_h <= 12 else top_h - 12
+        if display_h == 0:
+            display_h = 12
+        busiest_hour = f"{display_h} {ampm}"
 
     stats = {
         "media_message": media_count,
@@ -50,10 +70,14 @@ def statistics(raw_df: pd.DataFrame, data_frame: pd.DataFrame) -> Dict[str, Any]
         "group_name": group_name,
         "total_messages": data_frame.shape[0],
         'total_members': len(author_list),
-        'link_shared': link_count
+        'link_shared': link_count,
+        'total_emojis': total_emojis,
+        'avg_msgs_per_day': avg_msgs_per_day,
+        'peak_day': peak_day,
+        'busiest_hour': busiest_hour
     }
-    logger.info("Summary stats calculated: Group='%s', Messages=%d, Members=%d, Media=%d, Links=%d",
-                group_name, data_frame.shape[0], len(author_list), media_count, link_count)
+    logger.info("Summary stats calculated: Group='%s', Messages=%d, Members=%d, Media=%d, Links=%d, PeakDay=%s, PeakHour=%s",
+                group_name, data_frame.shape[0], len(author_list), media_count, link_count, peak_day, busiest_hour)
     return stats
 
 
@@ -67,10 +91,16 @@ def process_data(messages: list) -> pd.DataFrame:
         logger.error("Parsed message list is empty. Check chat file format or regex rules.")
         raise EmptyDataError("No WhatsApp chat data parsed. Check format.")
 
-    # Clean brackets and normalize am/pm indicators
+    # Clean brackets, translate Devanagari digits (०-९ -> 0-9), and normalize AM/PM indicators
     raw_df['datetime'] = raw_df['datetime'].astype(str)
+    devanagari_trans = str.maketrans('०१२३४५६७८९', '0123456789')
+    raw_df['datetime'] = raw_df['datetime'].str.translate(devanagari_trans)
     raw_df['datetime'] = raw_df['datetime'].str.replace('[', '', regex=False)
     raw_df['datetime'] = raw_df['datetime'].str.replace(']', '', regex=False)
+    raw_df['datetime'] = raw_df['datetime'].str.replace('पूर्वाह्न', 'AM', regex=False)
+    raw_df['datetime'] = raw_df['datetime'].str.replace('अपराह्न', 'PM', regex=False)
+    raw_df['datetime'] = raw_df['datetime'].str.replace('प.पू.', 'AM', regex=False)
+    raw_df['datetime'] = raw_df['datetime'].str.replace('प.उ.', 'PM', regex=False)
     raw_df['datetime'] = raw_df['datetime'].str.replace(r'(?i)[a]\.?[m]\.?', 'AM', regex=True)
     raw_df['datetime'] = raw_df['datetime'].str.replace(r'(?i)[p]\.?[m]\.?', 'PM', regex=True)
     raw_df['datetime'] = raw_df['datetime'].str.strip()
@@ -148,10 +178,10 @@ class WhatsAppProcess:
 
         timestamp_pattern = re.compile(
             r'^(\[?'
-            r'\d{1,4}[/\-\.]\d{1,4}[/\-\.]\d{1,4}'
+            r'[\d\u0966-\u096F]{1,4}[/\-\.][\d\u0966-\u096F]{1,4}[/\-\.][\d\u0966-\u096F]{1,4}'
             r'(?:,\s*|\s+)'
-            r'\d{1,2}:\d{2}(?::\d{2})?'
-            r'(?:\s*[aApP]\.?[mM]\.?)?'
+            r'[\d\u0966-\u096F]{1,2}:[\d\u0966-\u096F]{2}(?::[\d\u0966-\u096F]{2})?'
+            r'(?:\s*(?:[aApP]\.?[mM]\.?|पूर्वाह्न|अपराह्न|प\.पू\.|प\.उ\.))?'
             r'\]?'
             r')'
             r'(?:\s+-\s+|\s+)'
@@ -239,7 +269,7 @@ class WhatsAppProcess:
         return data_frame
 
     def cloud_data(self, raw_df: pd.DataFrame) -> pd.DataFrame:
-        """Clean and extract message data for WordCloud analysis."""
+        """Clean and extract message data for WordCloud analysis supporting Hindi & Marathi."""
         start_time = time.perf_counter()
         sep = '|'
         ignore_pattern = sep.join(re.escape(w) for w in self.app_config.ignore)
@@ -248,18 +278,113 @@ class WhatsAppProcess:
         ignored_count = len(raw_df) - len(cloud_df)
         cloud_df['message'] = (
             cloud_df['message']
-            .apply(lambda s: s.lower())
+            .apply(lambda s: str(s).lower())
             .apply(give_emoji_free_text)
-            .str.replace('\n|\t', '', regex=True)
-            .str.replace(' {2,}', ' ', regex=True)
+            .str.replace(r'http\S+', '', regex=True)
+            .str.replace(r'www\S+', '', regex=True)
+            .str.replace(r'[\n\t]', ' ', regex=True)
+            .str.replace(r'\s+', ' ', regex=True)
             .str.strip()
-            .replace(r'http\S+', '', regex=True)
-            .replace(r'www\S+', '', regex=True)
         )
         elapsed = time.perf_counter() - start_time
         self._logger.info("Extracted WordCloud dataset in %.3f sec (System messages filtered out: %d, Final records: %d)",
                           elapsed, ignored_count, len(cloud_df))
         return cloud_df
+
+    def extract_top_domains(self, data_frame: pd.DataFrame, top_n: int = 10) -> pd.DataFrame:
+        """Extract top shared web domain names from message URLs."""
+        domain_pattern = re.compile(r'https?://(?:www\.)?([^/\s:]+)', re.IGNORECASE)
+        domains = []
+        for msg in data_frame['message'].dropna():
+            found = domain_pattern.findall(str(msg))
+            domains.extend(d.lower() for d in found)
+        if not domains:
+            return pd.DataFrame(columns=['domain', 'count'])
+        counts = pd.Series(domains).value_counts().head(top_n).reset_index()
+        counts.columns = ['domain', 'count']
+        return counts
+
+    def calculate_reply_latency(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Calculate average response speed (reply latency in minutes) per participant."""
+        if 'datetime' not in data_frame.columns or 'name' not in data_frame.columns or data_frame.empty:
+            return pd.DataFrame(columns=['name', 'avg_reply_time_mins'])
+        
+        df = data_frame.sort_values('datetime').copy()
+        df['prev_name'] = df['name'].shift(1)
+        df['prev_time'] = df['datetime'].shift(1)
+        
+        # Filter for messages that are replies to a different author
+        replies = df[(df['name'] != df['prev_name']) & df['prev_name'].notna()].copy()
+        replies['reply_time_mins'] = (replies['datetime'] - replies['prev_time']).dt.total_seconds() / 60.0
+        
+        # Keep realistic active conversation replies (under 2 hours / 120 mins)
+        active_replies = replies[replies['reply_time_mins'] <= 120]
+        if active_replies.empty:
+            return pd.DataFrame(columns=['name', 'avg_reply_time_mins'])
+            
+        latency = active_replies.groupby('name')['reply_time_mins'].mean().round(1).reset_index()
+        latency.columns = ['name', 'avg_reply_time_mins']
+        return latency.sort_values('avg_reply_time_mins')
+
+    def hourly_activity_profile(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Extract message count distribution across all 24 hours (0-23)."""
+        if 'datetime' not in data_frame.columns or data_frame.empty:
+            return pd.DataFrame({'hour': range(24), 'message_count': [0]*24})
+        
+        hour_counts = data_frame['datetime'].dt.hour.value_counts()
+        profile = pd.DataFrame({'hour': range(24)})
+        profile['message_count'] = profile['hour'].map(hour_counts).fillna(0).astype(int)
+        profile['hour_label'] = profile['hour'].apply(
+            lambda h: f"{h if h <= 12 else h-12} {'AM' if h < 12 else 'PM'}" if h != 0 else "12 AM"
+        )
+        return profile
+
+    def analyze_message_sentiment(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Calculate sentiment polarity distribution across messages."""
+        try:
+            from textblob import TextBlob
+        except ImportError:
+            TextBlob = None
+
+        categories = {'Positive': 0, 'Neutral': 0, 'Negative': 0}
+        for msg in data_frame['message'].dropna():
+            text = str(msg).strip()
+            if not text:
+                categories['Neutral'] += 1
+                continue
+            if TextBlob:
+                polarity = TextBlob(text).sentiment.polarity
+            else:
+                polarity = 0.0
+            
+            if polarity > 0.05:
+                categories['Positive'] += 1
+            elif polarity < -0.05:
+                categories['Negative'] += 1
+            else:
+                categories['Neutral'] += 1
+
+        res = pd.DataFrame(list(categories.items()), columns=['Sentiment', 'Count'])
+        return res
+
+    def message_length_distribution(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        """Categorize messages into word-length buckets."""
+        if 'word_count' not in data_frame.columns or data_frame.empty:
+            return pd.DataFrame(columns=['Bucket', 'Count'])
+            
+        def bucketize(cnt):
+            if cnt <= 3:
+                return '1-3 Words (Short)'
+            elif cnt <= 10:
+                return '4-10 Words (Medium)'
+            elif cnt <= 25:
+                return '11-25 Words (Long)'
+            else:
+                return '25+ Words (Detailed)'
+
+        buckets = data_frame['word_count'].apply(bucketize).value_counts().reset_index()
+        buckets.columns = ['Bucket', 'Count']
+        return buckets
 
 
 WhatsAppAnalyzer = WhatsAppProcess

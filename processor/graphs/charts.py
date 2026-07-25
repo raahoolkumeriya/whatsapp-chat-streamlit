@@ -2,6 +2,7 @@
 Analytics and Visualization Chart Generator Module for WhatsApp Chat Analysis.
 Provides an Object-Oriented ChatVisualizer class and DRY helper routines.
 """
+import os
 import time
 import logging
 from typing import Dict, Any, Union
@@ -11,8 +12,12 @@ import pandas as pd
 import plotly.express as px
 from textblob import TextBlob
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
 logger = logging.getLogger(__name__)
+
+FONT_PATH = 'Laila-Regular.ttf'
+DEVANAGARI_FONT = fm.FontProperties(fname=FONT_PATH) if os.path.exists(FONT_PATH) else None
 
 
 class ChatVisualizer:
@@ -77,9 +82,17 @@ class ChatVisualizer:
                     fontweight='bold'
                 )
 
-        ax.set_xlabel(x_label, labelpad=10, color=self.text_color, fontweight='medium')
-        ax.set_ylabel(y_label, labelpad=10, color=self.text_color, fontweight='medium')
-        ax.set_title(title, pad=15, color=self.text_color, fontsize=12, fontweight='bold')
+        if DEVANAGARI_FONT:
+            ax.set_xlabel(x_label, labelpad=10, color=self.text_color, fontproperties=DEVANAGARI_FONT, fontsize=10)
+            ax.set_ylabel(y_label, labelpad=10, color=self.text_color, fontproperties=DEVANAGARI_FONT, fontsize=10)
+            ax.set_title(title, pad=15, color=self.text_color, fontproperties=DEVANAGARI_FONT, fontsize=12)
+            for tick in ax.get_xticklabels():
+                tick.set_fontproperties(DEVANAGARI_FONT)
+                tick.set_fontsize(9)
+        else:
+            ax.set_xlabel(x_label, labelpad=10, color=self.text_color, fontweight='medium')
+            ax.set_ylabel(y_label, labelpad=10, color=self.text_color, fontweight='medium')
+            ax.set_title(title, pad=15, color=self.text_color, fontsize=12, fontweight='bold')
         fig.tight_layout()
         
         elapsed = time.perf_counter() - start_time
@@ -377,4 +390,117 @@ def sentiment_analysis(cloud_df: pd.DataFrame) -> plt.Figure:
         'x_label': 'Group Member',
         'y_label': 'Average Polarity Score (0.0 to 1.0)',
         'title': 'Member Sentiment Polarity (Most Positive)'
+    })
+
+
+def plot_top_domains(domain_df: pd.DataFrame) -> plt.Figure:
+    """Plot horizontal bar chart of top shared web domain names."""
+    if domain_df.empty:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.text(0.5, 0.5, "No Web Links Found in Chat", ha='center', va='center', fontsize=12, color='#888888')
+        ax.axis('off')
+        return fig
+
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    y_pos = np.arange(len(domain_df))
+    ax.barh(y_pos, domain_df['count'], color='#06B6D4', alpha=0.85)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(domain_df['domain'], fontsize=10)
+    ax.invert_yaxis()  # top-down
+    ax.set_xlabel('Links Shared Count', fontweight='bold', fontsize=10)
+    ax.set_title('🌐 Top Shared Web Domains & Websites', fontweight='bold', fontsize=12, pad=12)
+    
+    for spine in ['top', 'right', 'left']:
+        ax.spines[spine].set_visible(False)
+    ax.spines['bottom'].set_color('#cccccc')
+    ax.xaxis.grid(True, color='#e9ecef', linestyle='--')
+    
+    for i, v in enumerate(domain_df['count']):
+        ax.text(v + 0.1, i, str(v), va='center', fontweight='bold', color='#333333')
+        
+    fig.tight_layout()
+    return fig
+
+
+def plot_reply_latency(latency_df: pd.DataFrame) -> plt.Figure:
+    """Plot bar chart of average response speed (reply latency in minutes) per member."""
+    if latency_df.empty:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.text(0.5, 0.5, "Insufficient Reply Data", ha='center', va='center', fontsize=12, color='#888888')
+        ax.axis('off')
+        return fig
+
+    return plot_data({
+        'x_value': latency_df.shape[0],
+        'y_value': latency_df['avg_reply_time_mins'].values,
+        'tick_label': latency_df['name'].values,
+        'x_label': 'Group Participant',
+        'y_label': 'Average Reply Speed (Minutes)',
+        'title': '⏱️ Member Response Speed (Fastest Responders)'
+    })
+
+
+def plot_hourly_profile(profile_df: pd.DataFrame) -> plt.Figure:
+    """Plot 24-hour activity distribution curve."""
+    fig, ax = plt.subplots(figsize=(10, 4.5))
+    x = profile_df['hour']
+    y = profile_df['message_count']
+    
+    ax.plot(x, y, color='#6366F1', linewidth=2.5, marker='o', markersize=5, markerfacecolor='#818CF8')
+    ax.fill_between(x, y, color='#6366F1', alpha=0.15)
+    
+    ax.set_xticks(range(0, 24, 2))
+    ax.set_xticklabels([f"{h:02d}:00" for h in range(0, 24, 2)], fontsize=9)
+    ax.set_xlabel('Hour of Day (24-Hour)', fontweight='bold', fontsize=10)
+    ax.set_ylabel('Message Count', fontweight='bold', fontsize=10)
+    ax.set_title('⚡ 24-Hour Hourly Activity Profile (Night Owls vs Early Birds)', fontweight='bold', fontsize=12, pad=12)
+    
+    for spine in ['top', 'right', 'left']:
+        ax.spines[spine].set_visible(False)
+    ax.spines['bottom'].set_color('#cccccc')
+    ax.yaxis.grid(True, color='#e9ecef', linestyle='--')
+    fig.tight_layout()
+    return fig
+
+
+def plot_sentiment_distribution(sentiment_df: pd.DataFrame) -> plt.Figure:
+    """Plot pie chart of group message sentiment polarity distribution."""
+    fig, ax = plt.subplots(figsize=(6, 5))
+    colors = ['#10B981', '#94A3B8', '#F43F5E']  # Green, Slate, Red
+    counts = sentiment_df['Count'].values
+    labels = sentiment_df['Sentiment'].values
+    
+    if sum(counts) == 0:
+        counts = [1]
+        labels = ['Neutral']
+
+    wedges, texts, autotexts = ax.pie(
+        counts,
+        labels=labels,
+        autopct='%1.1f%%',
+        startangle=140,
+        colors=colors[:len(counts)],
+        textprops=dict(color="#333333", fontweight='bold'),
+        wedgeprops=dict(width=0.45, edgecolor='white', linewidth=2)
+    )
+    ax.set_title('🎭 Group Sentiment Distribution', fontweight='bold', fontsize=12, pad=12)
+    fig.tight_layout()
+    return fig
+
+
+def plot_message_length_distribution(length_df: pd.DataFrame) -> plt.Figure:
+    """Plot bar chart of message word-length categories."""
+    if length_df.empty:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.text(0.5, 0.5, "No Message Length Data", ha='center', va='center', fontsize=12, color='#888888')
+        ax.axis('off')
+        return fig
+
+    return plot_data({
+        'x_value': length_df.shape[0],
+        'y_value': length_df['Count'].values,
+        'tick_label': length_df['Bucket'].values,
+        'x_label': 'Message Word-Length Category',
+        'y_label': 'Message Count',
+        'title': '📏 Message Length & Complexity Distribution'
     })
