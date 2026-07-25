@@ -1,7 +1,6 @@
-
 import unittest
 import yaml
-from processor.transformers.chat_eda import WhatsAppProcess, process_data,\
+from processor.transformers.chat_eda import WhatsAppProcess, WhatsAppAnalyzer, process_data,\
     statistics, extract_emojis, sorted_authors_df, WhatsAppConfig
 
 
@@ -12,7 +11,6 @@ class TestWhatsAppProcess(unittest.TestCase):
         # Parsing YAML file
         config = 'configs/app_configuration.yml'
         config = yaml.safe_load(open(config))
-        # configure logging
         # reading source configuration
         whatsapp_config = WhatsAppConfig(**config['whatsapp'])
         self.whatsapp = WhatsAppProcess(whatsapp_config)
@@ -34,9 +32,9 @@ class TestWhatsAppProcess(unittest.TestCase):
             "Return response is not Pandas DataFrame"
 
     def test_get_day_analysis_dataframe(self):
-        assert str(type(self.whatsapp.day_analysis(self.data_frame))) ==\
-            "<class 'pandas.core.frame.DataFrame'>",\
-            "Return response is not Pandas DataFrame"
+        df = self.whatsapp.day_analysis(self.data_frame)
+        assert str(type(df)) == "<class 'pandas.core.frame.DataFrame'>"
+        assert "word_count" in df.columns, "word_count column missing after day_analysis"
 
     def test_get_cloud_dataframe(self):
         assert str(type(self.whatsapp.cloud_data(self.raw_df))) ==\
@@ -71,3 +69,9 @@ class TestWhatsAppProcess(unittest.TestCase):
             'MAD MAX Fury Road 🛻']
         assert sorted_authors_df(self.data_frame).any() in list_member,\
             "Member does not found in List"
+
+    def test_whatsapp_analyzer_alias(self):
+        analyzer = WhatsAppAnalyzer(self.whatsapp.app_config)
+        assert analyzer is not None
+        matches = analyzer.apply_regex(self.data)
+        assert len(matches) > 0

@@ -1,7 +1,7 @@
-
 import unittest
 import yaml
 from processor.transformers.chat_eda import WhatsAppProcess, process_data
+from processor.graphs.charts import ChatVisualizer
 from unittest import mock
 
 
@@ -52,3 +52,15 @@ class TestCharts(unittest.TestCase):
         }
         mock_plot.plot_data(data_string)
         assert mock_plot.figure.show
+
+    def test_chat_visualizer_class(self):
+        viz = ChatVisualizer()
+        fig = viz.build_bar_chart(
+            x_count=2,
+            y_values=[10, 20],
+            tick_labels=['UserA', 'UserB'],
+            x_label='User',
+            y_label='Count',
+            title='Test Title'
+        )
+        assert fig is not None

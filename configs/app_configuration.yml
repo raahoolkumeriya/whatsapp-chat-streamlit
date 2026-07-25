@@ -23,17 +23,29 @@ whatsapp:
             'video omitted', 'You deleted this message',
             'sticker omitted']
 
-# Logging configuration
+# Comprehensive Logging configuration
 logging:
   version: 1
+  disable_existing_loggers: false
   formatters:
-    xetra:
-      format: "WhatsApp Chat Processor - %(asctime)s - %(levelname)s - %(message)s"
+    detailed:
+      format: "%(asctime)s [%(levelname)s] [%(name)s:%(funcName)s:%(lineno)d] - %(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
+    simple:
+      format: "WhatsApp Processor - %(asctime)s - %(levelname)s - %(message)s"
   handlers:
     console:
       class: logging.StreamHandler
-      formatter: xetra
+      formatter: detailed
       level: DEBUG
+    file:
+      class: logging.handlers.RotatingFileHandler
+      filename: "latest_logs/app.log"
+      maxBytes: 5242880 # 5MB
+      backupCount: 5
+      formatter: detailed
+      level: DEBUG
+      encoding: "utf-8"
   root:
     level: DEBUG
-    handlers: [ console ]
+    handlers: [ console, file ]
